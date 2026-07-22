@@ -139,6 +139,7 @@
         .status-open { background: #ef4444; color: white; }
         .status-closed { background: #22c55e; color: white; }
         .status-inprogress { background: #f59e0b; color: white; }
+        .hidden { display: none; }
     </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
@@ -357,6 +358,10 @@
         function getSubAreas(areaId) {
             const a = store.areas.find(x => x.id === areaId);
             return a ? a.subareas || [] : [];
+        }
+
+        function getAreasByAnalyst(analystId) {
+            return store.areas.filter(a => a.analyst_id === analystId);
         }
 
         function openZoom(src) {
@@ -909,7 +914,7 @@
         });
 
         // ============================================================
-        // INPUT 5R
+        // INPUT 5R - DENGAN FILTER AREA BERDASARKAN AUDITEE
         // ============================================================
         function loadInputForm5r() {
             const container = document.getElementById('input-tab');
@@ -924,7 +929,12 @@
                                 <div><label class="block text-xs text-gray-400 mb-1">TANGGAL *</label> <input type="date" id="input-5r-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"></div>
                                 <div><label class="block text-xs text-gray-400 mb-1">AUDITOR (FREE TEXT)</label> <input type="text" id="input-5r-auditor" placeholder="INISIAL" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 uppercase"></div>
                             </div>
-                            <div><label class="block text-xs text-gray-400 mb-1">AUDITEE *</label> <select id="input-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"><option value="">PILIH</option>${auditeeOptions}</select></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">AUDITEE *</label> 
+                                <select id="input-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500">
+                                    <option value="">PILIH AUDITEE</option>
+                                    ${auditeeOptions}
+                                </select>
+                            </div>
                             <div id="temuan-5r-list" class="space-y-3"><div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH"</div></div>
                             <div class="flex gap-3">
                                 <button id="add-temuan-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">➕ TAMBAH</button>
@@ -939,9 +949,40 @@
             temuan5rItems = [];
             renderTemuan5rItems();
 
+            // Event listener untuk auditee change - update area dropdown di semua temuan
+            document.getElementById('input-5r-auditee').addEventListener('change', function() {
+                const auditeeId = this.value;
+                // Update semua area dropdown di temuan items
+                document.querySelectorAll('.temuan-area-select').forEach(sel => {
+                    const currentValue = sel.value;
+                    const analystAreas = auditeeId ? getAreasByAnalyst(auditeeId) : [];
+                    sel.innerHTML = '<option value="">PILIH AREA</option>' + 
+                        analystAreas.map(a => `<option value="${a.id}" ${a.id === currentValue ? 'selected' : ''}>${a.name}</option>`).join('');
+                    
+                    // Reset subarea jika area berubah
+                    const index = parseInt(sel.dataset.index);
+                    if (temuan5rItems[index]) {
+                        temuan5rItems[index].areaId = sel.value;
+                        temuan5rItems[index].subarea = '';
+                    }
+                    // Trigger subarea update
+                    sel.dispatchEvent(new Event('change'));
+                });
+                renderTemuan5rItems();
+            });
+
             document.getElementById('add-temuan-5r').addEventListener('click', function() {
+                const auditeeId = document.getElementById('input-5r-auditee').value;
                 temuan5rItems.push({ areaId: '', subarea: '', desc: '', photoData: null });
                 renderTemuan5rItems();
+                // Set area options berdasarkan auditee yang dipilih
+                if (auditeeId) {
+                    document.querySelectorAll('.temuan-area-select').forEach(sel => {
+                        const analystAreas = getAreasByAnalyst(auditeeId);
+                        sel.innerHTML = '<option value="">PILIH AREA</option>' + 
+                            analystAreas.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+                    });
+                }
             });
 
             document.getElementById('submit-5r').addEventListener('click', async function() {
@@ -1013,7 +1054,10 @@
                 container.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN</div>';
                 return;
             }
-            const areaOptions = store.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+            const auditeeId = document.getElementById('input-5r-auditee')?.value || '';
+            const analystAreas = auditeeId ? getAreasByAnalyst(auditeeId) : [];
+
             container.innerHTML = temuan5rItems.map((item, index) => {
                 const subareas = item.areaId ? getSubAreas(item.areaId) : [];
                 const subOptions = subareas.map(s => `<option value="${s}" ${item.subarea === s ? 'selected' : ''}>${s}</option>`).join('');
@@ -1023,11 +1067,19 @@
                         <span class="remove-temuan" onclick="removeTemuan5r(${index})">🗑️ HAPUS</span>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div><label class="block text-xs text-gray-400 mb-1">AREA *</label>
-                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-area-select" data-index="${index}"><option value="">PILIH</option>${areaOptions}</select>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">AREA *</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-area-select" data-index="${index}">
+                                <option value="">PILIH AREA</option>
+                                ${analystAreas.map(a => `<option value="${a.id}" ${item.areaId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
+                            </select>
                         </div>
-                        <div><label class="block text-xs text-gray-400 mb-1">SUB AREA *</label>
-                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-subarea-select" data-index="${index}"><option value="">PILIH</option>${subOptions}</select>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">SUB AREA *</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-subarea-select" data-index="${index}">
+                                <option value="">PILIH SUB AREA</option>
+                                ${subOptions}
+                            </select>
                         </div>
                     </div>
                     <div class="mt-3">
