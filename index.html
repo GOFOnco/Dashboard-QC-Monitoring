@@ -114,6 +114,20 @@
             transition: color 0.2s;
         }
         .temuan-item .remove-temuan:hover { color: #f87171; }
+        .dashboard-temuan-5r {
+            background-color: #1f2937;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #8b5cf6;
+        }
+        .dashboard-temuan-5r .badge-5r {
+            background-color: #4c1d95;
+            color: #c4b5fd;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.6rem;
+        }
     </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
@@ -303,8 +317,8 @@
                     </div>
                 </div>
 
-                <!-- Data Table -->
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                <!-- Data Table QC -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 mb-6">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-sm font-semibold text-gray-300">📋 DETAIL TEMUAN QC</h3>
                         <div class="flex gap-2">
@@ -327,6 +341,36 @@
                                 </tr>
                             </thead>
                             <tbody id="findings-table" class="divide-y divide-gray-700">
+                                <tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Data Table 5R -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-semibold text-gray-300">🧹 DETAIL TEMUAN 5R</h3>
+                        <div class="flex gap-2">
+                            <button id="export-pdf-5r" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📄 PDF </button>
+                            <button id="export-excel-5r" class="bg-indigo-600 hover:bg-indigo-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📊 EXCEL </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITOR</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITEE</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">AREA</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">SUB AREA</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN 5R</th>
+                                </tr>
+                            </thead>
+                            <tbody id="findings-5r-table" class="divide-y divide-gray-700">
                                 <tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>
                             </tbody>
                         </table>
@@ -385,7 +429,6 @@
                             
                             <!-- Temuan 5R Dynamic List -->
                             <div id="temuan-5r-list" class="space-y-3">
-                                <!-- Temuan items will be added here -->
                                 <div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH TEMUAN"</div>
                             </div>
                             
@@ -1162,6 +1205,7 @@
 
             updateCharts(filtered);
             updateFindingsTable(filtered);
+            updateFindings5rTable();
         }
 
         // ============================================================
@@ -1295,7 +1339,7 @@
         }
 
         // ============================================================
-        // FINDINGS TABLE
+        // FINDINGS TABLE QC
         // ============================================================
         function updateFindingsTable(filteredFindings) {
             const tbody = document.getElementById('findings-table');
@@ -1325,6 +1369,44 @@
                         <td class="py-3 px-3"><span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">${f.category_name || '-'}</span></td>
                         <td class="py-3 px-3">${photoHtml}</td>
                         <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ============================================================
+        // FINDINGS TABLE 5R
+        // ============================================================
+        function updateFindings5rTable() {
+            const tbody = document.getElementById('findings-5r-table');
+            if (!tbody) return;
+            
+            const data = store.findings5r;
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+                }
+
+                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
+
+                return `
+                    <tr class="hover:bg-gray-700/50">
+                        <td class="py-3 px-3 text-gray-300">${index + 1}</td>
+                        <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.auditor_name || '-'}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.auditee_name || '-'}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.area_name || '-'}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.subarea || '-'}</td>
+                        <td class="py-3 px-3">${photoHtml}</td>
+                        <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan || '-'}</td>
                     </tr>
                 `;
             }).join('');
@@ -2334,7 +2416,7 @@
         }
 
         // ============================================================
-        // EXPORT FUNCTIONS
+        // EXPORT FUNCTIONS QC
         // ============================================================
         const exportPdfFindings = document.getElementById('export-pdf-findings');
         if (exportPdfFindings) {
@@ -2418,7 +2500,7 @@
                 });
 
                 doc.save(`QC_TEMUAN_${new Date().toISOString().split('T')[0]}.pdf`);
-                showToast('PDF TEMUAN BERHASIL DIEXPORT', 'success');
+                showToast('PDF TEMUAN QC BERHASIL DIEXPORT', 'success');
             });
         }
 
@@ -2452,7 +2534,130 @@
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, "Temuan QC");
                 XLSX.writeFile(wb, `QC_TEMUAN_${new Date().toISOString().split('T')[0]}.xlsx`);
-                showToast('EXCEL TEMUAN BERHASIL DIEXPORT', 'success');
+                showToast('EXCEL TEMUAN QC BERHASIL DIEXPORT', 'success');
+            });
+        }
+
+        // ============================================================
+        // EXPORT FUNCTIONS 5R
+        // ============================================================
+        const exportPdf5r = document.getElementById('export-pdf-5r');
+        if (exportPdf5r) {
+            exportPdf5r.addEventListener('click', () => {
+                if (store.findings5r.length === 0) {
+                    showToast('TIDAK ADA DATA 5R UNTUK DIEXPORT', 'error');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(16);
+                doc.text('LAPORAN DETAIL TEMUAN 5R', 105, 15, { align: 'center' });
+                doc.setFontSize(10);
+                doc.text(`Total Temuan: ${store.findings5r.length}`, 105, 25, { align: 'center' });
+                doc.text(`Generated: ${new Date().toLocaleString('ID-id')}`, 105, 32, { align: 'center' });
+
+                let y = 45;
+                doc.setFontSize(8);
+                doc.setFillColor(40, 40, 40);
+                doc.setTextColor(255, 255, 255);
+                doc.rect(15, y - 5, 180, 7, 'F');
+
+                doc.text('NO', 17, y);
+                doc.text('TANGGAL', 27, y);
+                doc.text('AUDITOR', 45, y);
+                doc.text('AUDITEE', 62, y);
+                doc.text('AREA', 78, y);
+                doc.text('SUB AREA', 98, y);
+                doc.text('TEMUAN', 118, y);
+
+                y += 5;
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(7);
+
+                store.findings5r.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((f, index) => {
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 20;
+                        doc.setFontSize(8);
+                        doc.setFillColor(40, 40, 40);
+                        doc.setTextColor(255, 255, 255);
+                        doc.rect(15, y - 5, 180, 7, 'F');
+                        doc.text('NO', 17, y);
+                        doc.text('TANGGAL', 27, y);
+                        doc.text('AUDITOR', 45, y);
+                        doc.text('AUDITEE', 62, y);
+                        doc.text('AREA', 78, y);
+                        doc.text('SUB AREA', 98, y);
+                        doc.text('TEMUAN', 118, y);
+                        y += 5;
+                        doc.setTextColor(0, 0, 0);
+                    }
+
+                    let formattedDate = '-';
+                    if (f.date) {
+                        const [year, month, day] = f.date.split('-');
+                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                        formattedDate = `${day} ${monthNames[parseInt(month) - 1]}`;
+                    }
+
+                    doc.text(`${index + 1}`, 17, y);
+                    doc.text(formattedDate, 27, y);
+                    doc.text(f.auditor_name || '-', 45, y);
+                    doc.text(f.auditee_name || '-', 62, y);
+                    doc.text(f.area_name || '-', 78, y);
+                    doc.text(f.subarea || '-', 98, y);
+
+                    const desc = f.temuan || '-';
+                    const lines = doc.splitTextToSize(desc, 55);
+                    lines.forEach((line, idx) => {
+                        if (y > 280) {
+                            doc.addPage();
+                            y = 20;
+                        }
+                        doc.text(line, 118, y);
+                        if (idx < lines.length - 1) y += 3;
+                    });
+                    y += 5;
+                });
+
+                doc.save(`5R_TEMUAN_${new Date().toISOString().split('T')[0]}.pdf`);
+                showToast('PDF TEMUAN 5R BERHASIL DIEXPORT', 'success');
+            });
+        }
+
+        const exportExcel5r = document.getElementById('export-excel-5r');
+        if (exportExcel5r) {
+            exportExcel5r.addEventListener('click', () => {
+                if (store.findings5r.length === 0) {
+                    showToast('TIDAK ADA DATA 5R UNTUK DIEXPORT', 'error');
+                    return;
+                }
+
+                const excelData = store.findings5r.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
+                    let formattedDate = '-';
+                    if (f.date) {
+                        const [year, month, day] = f.date.split('-');
+                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                        formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+                    }
+                    return {
+                        NO: index + 1,
+                        TANGGAL: formattedDate,
+                        AUDITOR: f.auditor_name || '-',
+                        AUDITEE: f.auditee_name || '-',
+                        AREA: f.area_name || '-',
+                        'SUB AREA': f.subarea || '-',
+                        'TEMUAN 5R': f.temuan || '-'
+                    };
+                });
+
+                const ws = XLSX.utils.json_to_sheet(excelData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Temuan 5R");
+                XLSX.writeFile(wb, `5R_TEMUAN_${new Date().toISOString().split('T')[0]}.xlsx`);
+                showToast('EXCEL TEMUAN 5R BERHASIL DIEXPORT', 'success');
             });
         }
 
