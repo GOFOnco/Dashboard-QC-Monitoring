@@ -125,4 +125,1796 @@
                                 <p class="text-xs text-gray-400 mb-1">Σ BATCH DENGAN TEMUAN</p>
                                 <p id="unique-batches" class="text-3xl font-bold text-orange-400">0</p>
                             </div>
-                            <div class="w-12
+                            <div class="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-400 mb-1">Σ TOTAL DOKUMEN</p>
+                                <p id="target-docs" class="text-3xl font-bold text-blue-400">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-400 mb-1">% QC PASS</p>
+                                <p id="qc-percentage" class="text-3xl font-bold">-</p>
+                            </div>
+                            <div id="qc-indicator" class="w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="bg-gray-800 rounded-xl p-4 mb-6 card-shadow border border-gray-700">
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI TANGGAL</label> <input type="date" id="filter-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
+                        <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI TANGGAL</label> <input type="date" id="filter-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
+                        <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">KODE PRODUK</label>
+                            <div class="multi-select-wrapper"><button type="button" id="filter-product-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-product-label">SEMUA PRODUK</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                                <div id="filter-product-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-product-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
+                                    <div id="filter-product-list" class="p-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">KATEGORI</label>
+                            <div class="multi-select-wrapper"><button type="button" id="filter-category-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-category-label">SEMUA KATEGORI</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                                <div id="filter-category-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-category-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
+                                    <div id="filter-category-list" class="p-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">INISIAL ANALYST</label>
+                            <div class="multi-select-wrapper"><button type="button" id="filter-analyst-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-analyst-label">SEMUA ANALYST</span>
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                                <div id="filter-analyst-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
+                                    <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-analyst-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
+                                    <div id="filter-analyst-list" class="p-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="apply-filter" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition"> 🔍 FILTER </button>
+                        <button id="reset-filter" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition"> ↺ RESET </button>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-4">📈 TREND % QC PASS PER BULAN</h3>
+                        <div class="h-64"><canvas id="chart-trend"></canvas></div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 TREND TEMUAN PER BULAN</h3>
+                        <div class="h-64"><canvas id="chart-monthly"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- Product Chart -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📦 KODE PRODUK</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="h-64"><canvas id="chart-product"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER PRODUK SETIAP BULAN (TOP 8)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-product"></tr></thead>
+                                    <tbody id="trend-table-body-product"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analyst Chart -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">👤 ANALYST</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="h-64"><canvas id="chart-analyst"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER ANALYST SETIAP BULAN (TOP 10)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-analyst"></tr></thead>
+                                    <tbody id="trend-table-body-analyst"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Category Chart -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ KATEGORI TEMUAN</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="h-64"><canvas id="chart-category"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER KATEGORI SETIAP BULAN (TOP 8)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-category"></tr></thead>
+                                    <tbody id="trend-table-body-category"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-semibold text-gray-300">📋 DETAIL TEMUAN</h3>
+                        <div class="flex gap-2">
+                            <button id="export-pdf-findings" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📄 PDF </button>
+                            <button id="export-excel-findings" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📊 EXCEL </button>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">NO. BATCH</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">INISIAL ANALYST</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">PARAMETER</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">KATEGORI</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN / DESKRIPSI</th>
+                                </tr>
+                            </thead>
+                            <tbody id="findings-table" class="divide-y divide-gray-700">
+                                <tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Tab - TANPA FORM -->
+            <div id="input-tab" class="tab-content hidden">
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
+                        <h2 class="text-lg font-bold text-emerald-400 mb-6 flex items-center gap-2"><span>➕</span> INPUT TEMUAN QC</h2>
+                        <div class="space-y-4" id="input-container">
+                            <div><label class="block text-xs text-gray-400 mb-1">TANGGAL TEMUAN *</label> <input type="date" id="input-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">KODE PRODUK *</label> <select id="input-product" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH PRODUK</option> </select></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">NOMOR BATCH *</label> <input type="text" id="input-batch" placeholder="MASUKKAN NO. BATCH" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">PARAMETER ANALISA *</label> 
+                                <div id="parameter-container" class="flex flex-wrap gap-2 p-3 bg-gray-700/50 rounded-lg min-h-[50px] border border-gray-600">
+                                    <span class="text-gray-400 text-sm" id="no-parameter-msg">PILIH PRODUK TERLEBIH DAHULU</span>
+                                </div>
+                            </div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">KATEGORI TEMUAN *</label> <select id="input-category" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH KATEGORI</option> </select></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">INISIAL ANALYST *</label> <select id="input-analyst" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH ANALYST</option> </select></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">DESKRIPSI TEMUAN *</label> <textarea id="input-description" rows="4" placeholder="JELASKAN TEMUAN SECARA DETAIL..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500 resize-none"></textarea></div>
+                            
+                            <div><label class="block text-xs text-gray-400 mb-1">FOTO (OPTIONAL)</label> <input type="file" id="input-photo" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700"></div>
+                            
+                            <div class="flex gap-3 pt-2">
+                                <button id="submit-finding" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2"> <span>💾</span> SIMPAN TEMUAN </button>
+                                <button id="reset-finding" class="px-6 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-medium transition"> ↺ RESET </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management Tab -->
+            <div id="management-tab" class="tab-content hidden">
+                <div id="admin-login" class="max-w-md mx-auto">
+                    <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
+                        <div class="text-center mb-6">
+                            <div class="w-16 h-16 bg-emerald-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                            </div>
+                            <h2 class="text-lg font-bold text-white">ADMIN LOGIN</h2>
+                            <p class="text-xs text-gray-400 mt-1">MASUKKAN PASSWORD UNTUK AKSES MANAJEMEN</p>
+                        </div>
+                        <div class="space-y-4">
+                            <div><label class="block text-xs text-gray-400 mb-1">PASSWORD</label> <input type="password" id="admin-password" placeholder="•••••••••" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"></div>
+                            <button id="admin-login-btn" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium transition"> 🔓 LOGIN </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="admin-panel" class="hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold text-emerald-400">⚙️ QC MANAGEMENT</h2>
+                        <button id="admin-logout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"> 🚪 LOGOUT </button>
+                    </div>
+                    <div class="bg-gray-800 rounded-t-xl border border-gray-700 border-b-0">
+                        <div class="flex overflow-x-auto">
+                            <button class="mgmt-tab mgmt-tab-active px-4 py-3 text-sm font-medium border-b-2 border-emerald-500 text-emerald-400" data-mgmt="analysts">👤 ANALYST</button>
+                            <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:text-emerald-400" data-mgmt="products">📦 KODE PRODUK</button>
+                            <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:text-emerald-400" data-mgmt="categories">🏷️ KATEGORI</button>
+                            <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:text-emerald-400" data-mgmt="targets">🎯 TARGET</button>
+                            <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:text-emerald-400" data-mgmt="findings">📋 TEMUAN</button>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-b-xl p-5 border border-gray-700 border-t-0">
+                        <div id="mgmt-analysts" class="mgmt-content">
+                            <div class="flex gap-3 mb-4"><input type="text" id="new-analyst" placeholder="INISIAL ANALYST BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-analyst" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div id="analysts-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
+                        <div id="mgmt-products" class="mgmt-content hidden">
+                            <div class="flex gap-3 mb-4"><input type="text" id="new-product" placeholder="KODE PRODUK BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-product" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div id="products-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
+                        <div id="mgmt-categories" class="mgmt-content hidden">
+                            <div class="flex gap-3 mb-4"><input type="text" id="new-category" placeholder="NAMA KATEGORI BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-category" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div id="categories-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
+                        <div id="mgmt-targets" class="mgmt-content hidden">
+                            <div class="flex gap-3 mb-4"><input type="month" id="new-target-month" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500"> <input type="number" id="new-target-value" placeholder="Σ TOTAL DOKUMEN" min="1" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-target" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div id="targets-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
+                        </div>
+                        <div id="mgmt-findings" class="mgmt-content hidden">
+                            <div class="overflow-x-auto max-h-96">
+                                <table class="w-full text-sm">
+                                    <thead class="sticky top-0 bg-gray-800">
+                                        <tr class="border-b border-gray-700">
+                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">TANGGAL</th>
+                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">PRODUK</th>
+                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">BATCH</th>
+                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">ANALYST</th>
+                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AKSI</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="findings-mgmt-list" class="divide-y divide-gray-700"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Audit Trail Tab -->
+            <div id="audit-tab" class="tab-content hidden">
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 mb-6">
+                    <div class="flex flex-wrap gap-3 items-end">
+                        <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI TANGGAL</label> <input type="date" id="audit-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                        <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI TANGGAL</label> <input type="date" id="audit-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"></div>
+                        <div class="flex-1 min-w-[120px]"><label class="block text-xs text-gray-400 mb-1">PRODUK</label> <select id="audit-filter-product" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"> <option value="">SEMUA</option> </select></div>
+                        <div class="flex-1 min-w-[120px]"><label class="block text-xs text-gray-400 mb-1">KATEGORI</label> <select id="audit-filter-category" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"> <option value="">SEMUA</option> </select></div>
+                        <div class="flex-1 min-w-[120px]"><label class="block text-xs text-gray-400 mb-1">INISIAL</label> <select id="audit-filter-initial" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500"> <option value="">SEMUA</option> </select></div>
+                        <button id="audit-filter-btn" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition">🔍 FILTER</button>
+                        <button id="audit-reset-btn" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition">↺ RESET</button>
+                        <button id="export-pdf-audit" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition">📄 EXPORT PDF</button>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📋 AUDIT TRAIL LOG</h3>
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="w-full text-sm">
+                            <thead class="sticky top-0 bg-gray-800">
+                                <tr class="border-b border-gray-700">
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">TIMESTAMP</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">AKSI</th>
+                                    <th class="text-left py-3 px-3 text-gray-400 font-medium">DETAIL</th>
+                                </tr>
+                            </thead>
+                            <tbody id="audit-table" class="divide-y divide-gray-700">
+                                <tr><td colspan="3" class="py-8 text-center text-gray-500">TIDAK ADA LOG</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700">
+            <h3 class="text-lg font-bold text-white mb-2">⚠️ KONFIRMASI HAPUS</h3>
+            <p id="delete-message" class="text-gray-400 mb-6">APAKAH ANDA YAKIN INGIN MENGHAPUS DATA INI?</p>
+            <div class="flex gap-3"><button id="confirm-delete" class="flex-1 bg-red-600 hover:bg-red-700 py-2 rounded-lg font-medium transition">🗑️ HAPUS</button> <button id="cancel-delete" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg font-medium transition">❌ BATAL</button></div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-md w-full mx-4 border border-gray-700">
+            <h3 class="text-lg font-bold text-white mb-4">✏️ EDIT DATA</h3>
+            <div class="mb-4"><label class="block text-xs text-gray-400 mb-1">NILAI BARU</label> <input type="text" id="edit-value" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"></div>
+            <div class="flex gap-3"><button id="confirm-edit" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-2 rounded-lg font-medium transition">💾 SIMPAN</button> <button id="cancel-edit" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded-lg font-medium transition">❌ BATAL</button></div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // STORAGE WITH FALLBACK (Memory + localStorage)
+        // ============================================================
+        let memoryStore = {};
+
+        function isLocalStorageAvailable() {
+            try {
+                const test = 'test_' + Date.now();
+                localStorage.setItem(test, test);
+                localStorage.removeItem(test);
+                return true;
+            } catch {
+                return false;
+            }
+        }
+
+        const USE_LOCAL_STORAGE = isLocalStorageAvailable();
+
+        const DB = {
+            get(key, defaultVal = null) {
+                if (USE_LOCAL_STORAGE) {
+                    try {
+                        const data = localStorage.getItem('qc_' + key);
+                        return data ? JSON.parse(data) : defaultVal;
+                    } catch { return defaultVal; }
+                }
+                return memoryStore[key] !== undefined ? memoryStore[key] : defaultVal;
+            },
+            set(key, value) {
+                if (USE_LOCAL_STORAGE) {
+                    try {
+                        localStorage.setItem('qc_' + key, JSON.stringify(value));
+                    } catch (e) {
+                        console.warn('localStorage write failed, using memory:', e);
+                        memoryStore[key] = value;
+                    }
+                } else {
+                    memoryStore[key] = value;
+                }
+            },
+            id() {
+                return Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            }
+        };
+
+        console.log('📦 Storage mode:', USE_LOCAL_STORAGE ? 'localStorage' : 'Memory (fallback)');
+
+        // ============================================================
+        // DATA STORE
+        // ============================================================
+        let store = {
+            findings: [],
+            analysts: [],
+            products: [],
+            categories: [],
+            targets: [],
+            auditLogs: []
+        };
+
+        function loadStore() {
+            store.findings = DB.get('findings', []);
+            store.analysts = DB.get('analysts', []);
+            store.products = DB.get('products', []);
+            store.categories = DB.get('categories', []);
+            store.targets = DB.get('targets', []);
+            store.auditLogs = DB.get('auditLogs', []);
+        }
+
+        function saveStore() {
+            DB.set('findings', store.findings);
+            DB.set('analysts', store.analysts);
+            DB.set('products', store.products);
+            DB.set('categories', store.categories);
+            DB.set('targets', store.targets);
+            DB.set('auditLogs', store.auditLogs);
+        }
+
+        // ============================================================
+        // APPLICATION STATE
+        // ============================================================
+        let isAdminLoggedIn = false;
+        let deleteCallback = null;
+        let editCallback = null;
+        let charts = {};
+        let currentFilteredFindings = [];
+
+        const selectedFilters = {
+            products: new Set(),
+            categories: new Set(),
+            analysts: new Set()
+        };
+
+        // ============================================================
+        // UTILITY FUNCTIONS
+        // ============================================================
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type === 'success' ? 'bg-emerald-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'} text-white`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function addAuditLog(action, details, product = '', category = '', analyst = '') {
+            store.auditLogs.unshift({
+                id: DB.id(),
+                created_at: new Date().toISOString(),
+                action: action,
+                details: details,
+                product: product || null,
+                category: category || null,
+                analyst: analyst || null
+            });
+            if (store.auditLogs.length > 1000) store.auditLogs = store.auditLogs.slice(0, 1000);
+            saveStore();
+        }
+
+        function getProductName(id) {
+            const p = store.products.find(x => x.id === id);
+            return p ? p.name : id;
+        }
+
+        function getCategoryName(id) {
+            const c = store.categories.find(x => x.id === id);
+            return c ? c.name : id;
+        }
+
+        function getAnalystName(id) {
+            const a = store.analysts.find(x => x.id === id);
+            return a ? a.name : id;
+        }
+
+        function getProductParameters(productId) {
+            const p = store.products.find(x => x.id === productId);
+            return p ? p.parameters || [] : [];
+        }
+
+        // ============================================================
+        // GENERATE TREND TABLE
+        // ============================================================
+        function generateTrendTable(data, type, limit = 8) {
+            if (!data || data.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            let nameField, nameLabel, badgeClass;
+            switch (type) {
+                case 'product': nameField = 'product_name'; nameLabel = 'PRODUK'; badgeClass = 'product-badge'; break;
+                case 'analyst': nameField = 'analyst_name'; nameLabel = 'ANALYST'; badgeClass = 'analyst-badge'; limit = 10; break;
+                case 'category': nameField = 'category_name'; nameLabel = 'KATEGORI'; badgeClass = 'category-badge'; break;
+                default: return { header: '', body: '' };
+            }
+
+            const itemMonthlyData = {};
+            const monthsSet = new Set();
+
+            data.forEach(f => {
+                if (f.date && f[nameField]) {
+                    const month = f.date.substring(0, 7);
+                    monthsSet.add(month);
+                    if (!itemMonthlyData[f[nameField]]) {
+                        itemMonthlyData[f[nameField]] = {};
+                    }
+                    itemMonthlyData[f[nameField]][month] = (itemMonthlyData[f[nameField]][month] || 0) + 1;
+                }
+            });
+
+            const sortedMonths = Array.from(monthsSet).sort();
+            const itemTotals = Object.keys(itemMonthlyData).map(item => ({
+                name: item,
+                total: Object.values(itemMonthlyData[item]).reduce((sum, val) => sum + val, 0)
+            }));
+            itemTotals.sort((a, b) => b.total - a.total);
+            const topItems = itemTotals.slice(0, limit).map(item => item.name);
+
+            if (topItems.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            let headerHTML = `<th class="sticky left-0 bg-gray-700 text-left" style="min-width:120px;">${nameLabel}</th>`;
+            sortedMonths.forEach(month => {
+                const [year, monthNum] = month.split('-');
+                headerHTML += `<th style="min-width:70px;">${monthNames[parseInt(monthNum) - 1]}<br><span class="text-xs text-gray-400">${year}</span></th>`;
+            });
+            headerHTML += '<th style="min-width:80px; background-color:#4b5563;">TOTAL</th>';
+
+            let bodyHTML = '';
+            topItems.forEach(item => {
+                let rowHTML = `<tr><td class="sticky left-0 bg-gray-800 font-bold text-left"><span class="item-badge ${badgeClass}">${item}</span></td>`;
+                let itemTotal = 0;
+                sortedMonths.forEach(month => {
+                    const count = itemMonthlyData[item]?.[month] || 0;
+                    itemTotal += count;
+                    let bgColor = 'bg-gray-800';
+                    if (count > 0) {
+                        if (count >= 5) bgColor = 'bg-red-900/60';
+                        else if (count >= 3) bgColor = 'bg-orange-900/50';
+                        else if (count >= 1) bgColor = 'bg-yellow-900/40';
+                    }
+                    rowHTML += `<td class="${bgColor} font-mono">${count || '-'}</td>`;
+                });
+                rowHTML += `<td class="bg-blue-900/40 font-bold">${itemTotal}</td></tr>`;
+                bodyHTML += rowHTML;
+            });
+
+            let totalRowHTML = '<tr class="border-t-2 border-gray-600 bg-gray-700/50"><td class="sticky left-0 bg-gray-700 font-bold">TOTAL</td>';
+            sortedMonths.forEach(month => {
+                let monthTotal = 0;
+                topItems.forEach(item => {
+                    monthTotal += itemMonthlyData[item]?.[month] || 0;
+                });
+                totalRowHTML += `<td class="font-bold">${monthTotal || '-'}</td>`;
+            });
+            let grandTotal = 0;
+            topItems.forEach(item => {
+                grandTotal += itemTotals.find(i => i.name === item)?.total || 0;
+            });
+            totalRowHTML += `<td class="bg-blue-800/60 font-bold">${grandTotal}</td></tr>`;
+            bodyHTML += totalRowHTML;
+
+            return { header: headerHTML, body: bodyHTML };
+        }
+
+        function updateAllTrendTables() {
+            const productTrend = generateTrendTable(store.findings, 'product', 8);
+            document.getElementById('trend-table-header-product').innerHTML = productTrend.header;
+            document.getElementById('trend-table-body-product').innerHTML = productTrend.body;
+
+            const analystTrend = generateTrendTable(store.findings, 'analyst', 10);
+            document.getElementById('trend-table-header-analyst').innerHTML = analystTrend.header;
+            document.getElementById('trend-table-body-analyst').innerHTML = analystTrend.body;
+
+            const categoryTrend = generateTrendTable(store.findings, 'category', 8);
+            document.getElementById('trend-table-header-category').innerHTML = categoryTrend.header;
+            document.getElementById('trend-table-body-category').innerHTML = categoryTrend.body;
+        }
+
+        // ============================================================
+        // UPDATE UI FUNCTIONS
+        // ============================================================
+        function updateDropdowns() {
+            const productOptions = '<option value="">PILIH PRODUK</option>' + store.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            const categoryOptions = '<option value="">PILIH KATEGORI</option>' + store.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            const analystOptions = '<option value="">PILIH ANALYST</option>' + store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+            document.getElementById('input-product').innerHTML = productOptions;
+            document.getElementById('input-category').innerHTML = categoryOptions;
+            document.getElementById('input-analyst').innerHTML = analystOptions;
+
+            updateMultiSelectList('product', store.products);
+            updateMultiSelectList('category', store.categories);
+            updateMultiSelectList('analyst', store.analysts);
+
+            document.getElementById('audit-filter-product').innerHTML = '<option value="">SEMUA</option>' + store.products.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+            document.getElementById('audit-filter-category').innerHTML = '<option value="">SEMUA</option>' + store.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+            document.getElementById('audit-filter-initial').innerHTML = '<option value="">SEMUA</option>' + store.analysts.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
+        }
+
+        function updateMultiSelectList(type, items) {
+            const listEl = document.getElementById(`filter-${type}-list`);
+            if (!listEl) return;
+
+            let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
+
+            listEl.innerHTML = items.map(item => `
+                <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer">
+                    <input type="checkbox" class="filter-${type}-checkbox form-checkbox text-emerald-600 rounded" 
+                           value="${item.name}" ${selectedFilters[filterKey].has(item.name) ? 'checked' : ''}>
+                    <span class="text-sm">${item.name}</span>
+                </label>
+            `).join('');
+
+            listEl.querySelectorAll(`.filter-${type}-checkbox`).forEach(checkbox => {
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        selectedFilters[filterKey].add(e.target.value);
+                    } else {
+                        selectedFilters[filterKey].delete(e.target.value);
+                    }
+                    updateMultiSelectLabel(type);
+                    const allCheckbox = document.getElementById(`filter-${type}-all`);
+                    if (allCheckbox) allCheckbox.checked = selectedFilters[filterKey].size === items.length;
+                });
+            });
+        }
+
+        function updateMultiSelectLabel(type) {
+            let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
+            const labelEl = document.getElementById(`filter-${type}-label`);
+            if (!labelEl) return;
+
+            const count = selectedFilters[filterKey].size;
+            const labels = {
+                product: ['SEMUA PRODUK', 'PRODUK DIPILIH'],
+                category: ['SEMUA KATEGORI', 'KATEGORI DIPILIH'],
+                analyst: ['SEMUA ANALYST', 'ANALYST DIPILIH']
+            };
+
+            if (count === 0) labelEl.textContent = labels[type][0];
+            else if (count === 1) labelEl.textContent = Array.from(selectedFilters[filterKey])[0];
+            else labelEl.textContent = `${count} ${labels[type][1]}`;
+        }
+
+        function setupMultiSelectDropdowns() {
+            ['product', 'category', 'analyst'].forEach(type => {
+                const btn = document.getElementById(`filter-${type}-btn`);
+                const dropdown = document.getElementById(`filter-${type}-dropdown`);
+                const selectAll = document.getElementById(`filter-${type}-all`);
+
+                if (!btn || !dropdown) return;
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    ['product', 'category', 'analyst'].forEach(t => {
+                        const d = document.getElementById(`filter-${t}-dropdown`);
+                        if (d && t !== type) d.classList.add('hidden');
+                    });
+                    dropdown.classList.toggle('hidden');
+                });
+
+                if (selectAll) {
+                    selectAll.addEventListener('change', (e) => {
+                        let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
+                        const checkboxes = document.querySelectorAll(`.filter-${type}-checkbox`);
+                        checkboxes.forEach(cb => {
+                            cb.checked = e.target.checked;
+                            if (e.target.checked) selectedFilters[filterKey].add(cb.value);
+                            else selectedFilters[filterKey].delete(cb.value);
+                        });
+                        updateMultiSelectLabel(type);
+                    });
+                }
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.multi-select-wrapper')) {
+                    ['product', 'category', 'analyst'].forEach(type => {
+                        const d = document.getElementById(`filter-${type}-dropdown`);
+                        if (d) d.classList.add('hidden');
+                    });
+                }
+            });
+        }
+
+        // ============================================================
+        // DASHBOARD
+        // ============================================================
+        function updateDashboard() {
+            const now = new Date();
+            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+            let filtered = [...store.findings];
+            const dateFrom = document.getElementById('filter-date-from').value;
+            const dateTo = document.getElementById('filter-date-to').value;
+
+            if (dateFrom) filtered = filtered.filter(f => f.date >= dateFrom);
+            if (dateTo) filtered = filtered.filter(f => f.date <= dateTo);
+
+            if (selectedFilters.products.size > 0) {
+                filtered = filtered.filter(f => selectedFilters.products.has(f.product_name));
+            }
+            if (selectedFilters.categories.size > 0) {
+                filtered = filtered.filter(f => selectedFilters.categories.has(f.category_name));
+            }
+            if (selectedFilters.analysts.size > 0) {
+                filtered = filtered.filter(f => selectedFilters.analysts.has(f.analyst_name));
+            }
+
+            currentFilteredFindings = filtered;
+
+            document.getElementById('total-findings').textContent = filtered.length;
+
+            const uniqueBatches = new Set(filtered.map(f => f.batch_number).filter(b => b));
+            document.getElementById('unique-batches').textContent = uniqueBatches.size;
+
+            let targetValue = 0;
+            let uniqueBatchesForQC = 0;
+            let isValidForQC = false;
+            let coveredMonths = [];
+
+            if (dateFrom && dateTo) {
+                const fromDate = new Date(dateFrom);
+                const toDate = new Date(dateTo);
+                let currentDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+                while (currentDate <= toDate) {
+                    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+                    const firstDayStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
+                    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+                    const lastDayStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(lastDayOfMonth.getDate()).padStart(2, '0')}`;
+                    const isFullMonth = dateFrom <= firstDayStr && dateTo >= lastDayStr;
+                    if (isFullMonth && !coveredMonths.includes(monthKey)) {
+                        coveredMonths.push(monthKey);
+                    }
+                    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+                }
+                if (coveredMonths.length > 0) {
+                    isValidForQC = true;
+                    const uniqueBatchSet = new Set(filtered.map(f => f.batch_number).filter(b => b));
+                    uniqueBatchesForQC = uniqueBatchSet.size;
+                    coveredMonths.forEach(month => {
+                        const monthTarget = store.targets.find(t => t.target_month === month);
+                        if (monthTarget) targetValue += monthTarget.target_value;
+                    });
+                }
+            } else if (!dateFrom && !dateTo) {
+                isValidForQC = true;
+                const uniqueBatchSet = new Set(filtered.map(f => f.batch_number).filter(b => b));
+                uniqueBatchesForQC = uniqueBatchSet.size;
+                const monthTarget = store.targets.find(t => t.target_month === currentMonth);
+                targetValue = monthTarget ? monthTarget.target_value : 0;
+            }
+
+            document.getElementById('target-docs').textContent = isValidForQC ? targetValue : '-';
+
+            const qcPercent = isValidForQC && targetValue > 0 ? ((targetValue - uniqueBatchesForQC) / targetValue) * 100 : null;
+            const qcEl = document.getElementById('qc-percentage');
+            const indicatorEl = document.getElementById('qc-indicator');
+
+            if (qcPercent !== null) {
+                qcEl.textContent = qcPercent.toFixed(1) + '%';
+                if (qcPercent >= 100) {
+                    qcEl.className = 'text-3xl font-bold text-emerald-400';
+                    indicatorEl.className = 'w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center';
+                } else {
+                    qcEl.className = 'text-3xl font-bold text-red-400';
+                    indicatorEl.className = 'w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center';
+                }
+            } else {
+                qcEl.textContent = '-';
+                qcEl.className = 'text-3xl font-bold text-gray-400';
+                indicatorEl.className = 'w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center';
+            }
+
+            updateCharts(filtered);
+            updateFindingsTable(filtered);
+        }
+
+        // ============================================================
+        // CHARTS
+        // ============================================================
+        function updateCharts(filteredFindings) {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'center',
+                        align: 'center',
+                        color: '#ffffff',
+                        font: { size: 14, weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
+                scales: {
+                    x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
+                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } }
+                }
+            };
+
+            const currentYear = new Date().getFullYear();
+            const monthlyData = {};
+            store.findings.forEach(f => {
+                if (f.date) {
+                    const month = f.date.substring(0, 7);
+                    const year = parseInt(f.date.substring(0, 4));
+                    if (year === currentYear) {
+                        monthlyData[month] = (monthlyData[month] || 0) + 1;
+                    }
+                }
+            });
+
+            const months = Object.keys(monthlyData).sort();
+            const monthLabels = months.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+            });
+
+            const qcTrend = months.map(m => {
+                const target = store.targets.find(t => t.target_month === m);
+                if (target) {
+                    const findingsInMonth = store.findings.filter(f => f.date && f.date.startsWith(m));
+                    const uniqueBatchSet = new Set(findingsInMonth.map(f => f.batch_number).filter(b => b));
+                    return target.target_value > 0 ? ((target.target_value - uniqueBatchSet.size) / target.target_value) * 100 : 0;
+                }
+                return 0;
+            });
+
+            if (charts.trend) charts.trend.destroy();
+            charts.trend = new Chart(document.getElementById('chart-trend'), {
+                type: 'line',
+                data: {
+                    labels: monthLabels,
+                    datasets: [{ data: qcTrend, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }]
+                },
+                options: {
+                    ...chartOptions,
+                    scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, min: 0, max: 100 } },
+                    plugins: {
+                        ...chartOptions.plugins,
+                        datalabels: {
+                            ...chartOptions.plugins.datalabels,
+                            formatter: (value) => value > 0 ? value.toFixed(1) + '%' : ''
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+
+            if (charts.monthly) charts.monthly.destroy();
+            charts.monthly = new Chart(document.getElementById('chart-monthly'), {
+                type: 'bar',
+                data: { labels: monthLabels, datasets: [{ data: months.map(m => monthlyData[m]), backgroundColor: '#f59e0b' }] },
+                options: chartOptions,
+                plugins: [ChartDataLabels]
+            });
+
+            const productData = {};
+            filteredFindings.forEach(f => { if (f.product_name) productData[f.product_name] = (productData[f.product_name] || 0) + 1; });
+            const productSorted = Object.entries(productData).sort((a, b) => b[1] - a[1]);
+            if (charts.product) charts.product.destroy();
+            charts.product = new Chart(document.getElementById('chart-product'), {
+                type: 'bar',
+                data: { labels: productSorted.map(p => p[0]), datasets: [{ data: productSorted.map(p => p[1]), backgroundColor: '#8b5cf6' }] },
+                options: chartOptions,
+                plugins: [ChartDataLabels]
+            });
+
+            const analystData = {};
+            filteredFindings.forEach(f => { if (f.analyst_name) analystData[f.analyst_name] = (analystData[f.analyst_name] || 0) + 1; });
+            const analystSorted = Object.entries(analystData).sort((a, b) => b[1] - a[1]);
+            if (charts.analyst) charts.analyst.destroy();
+            charts.analyst = new Chart(document.getElementById('chart-analyst'), {
+                type: 'bar',
+                data: { labels: analystSorted.map(a => a[0]), datasets: [{ data: analystSorted.map(a => a[1]), backgroundColor: '#ec4899' }] },
+                options: chartOptions,
+                plugins: [ChartDataLabels]
+            });
+
+            const categoryData = {};
+            filteredFindings.forEach(f => { if (f.category_name) categoryData[f.category_name] = (categoryData[f.category_name] || 0) + 1; });
+            const categorySorted = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
+            if (charts.category) charts.category.destroy();
+            charts.category = new Chart(document.getElementById('chart-category'), {
+                type: 'bar',
+                data: { labels: categorySorted.map(c => c[0]), datasets: [{ data: categorySorted.map(c => c[1]), backgroundColor: '#14b8a6' }] },
+                options: chartOptions,
+                plugins: [ChartDataLabels]
+            });
+        }
+
+        // ============================================================
+        // FINDINGS TABLE
+        // ============================================================
+        function updateFindingsTable(filteredFindings) {
+            const tbody = document.getElementById('findings-table');
+            if (filteredFindings.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+                }
+
+                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
+
+                return `
+                    <tr class="hover:bg-gray-700/50">
+                        <td class="py-3 px-3 text-gray-300">${index + 1}</td>
+                        <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.batch_number || '-'}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.analyst_name || '-'}</td>
+                        <td class="py-3 px-3 text-gray-300">${f.parameter || '-'}</td>
+                        <td class="py-3 px-3"><span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">${f.category_name || '-'}</span></td>
+                        <td class="py-3 px-3">${photoHtml}</td>
+                        <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ============================================================
+        // MANAGEMENT UI
+        // ============================================================
+        function updateManagementLists() {
+            document.getElementById('analysts-list').innerHTML = store.analysts.length === 0 ?
+                '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
+                store.analysts.map(a => createMasterItem(a, 'analyst')).join('');
+
+            document.getElementById('products-list').innerHTML = store.products.length === 0 ?
+                '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
+                store.products.map(p => createProductItem(p)).join('');
+
+            document.getElementById('categories-list').innerHTML = store.categories.length === 0 ?
+                '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
+                store.categories.map(c => createMasterItem(c, 'category')).join('');
+
+            document.getElementById('targets-list').innerHTML = store.targets.length === 0 ?
+                '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
+                store.targets.sort((a, b) => b.target_month.localeCompare(a.target_month)).map(t => {
+                    const monthFindings = store.findings.filter(f => f.date && f.date.startsWith(t.target_month)).length;
+                    const uniqueBatches = new Set(store.findings.filter(f => f.date && f.date.startsWith(t.target_month)).map(f => f.batch_number)).size;
+                    const qc = t.target_value > 0 ? ((t.target_value - uniqueBatches) / t.target_value) * 100 : 0;
+                    return `
+                        <div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${t.id}">
+                            <div class="flex-1">
+                                <span class="font-medium">${t.target_month}</span>
+                                <span class="text-gray-400 ml-2">TARGET: ${t.target_value}</span>
+                                <span class="text-gray-400 ml-2">TEMUAN: ${monthFindings}</span>
+                                <span class="ml-2 ${qc >= 95 ? 'text-emerald-400' : qc >= 90 ? 'text-amber-400' : 'text-red-400'}">${qc.toFixed(1)}%</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="edit-target text-blue-400 hover:text-blue-300 p-1" data-id="${t.id}">✏️</button>
+                                <button class="delete-target text-red-400 hover:text-red-300 p-1" data-id="${t.id}">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+            document.getElementById('findings-mgmt-list').innerHTML = store.findings.length === 0 ?
+                '<tr><td colspan="5" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' :
+                store.findings.sort((a, b) => new Date(b.date) - new Date(a.date)).map(f => `
+                    <tr class="hover:bg-gray-700/50" data-id="${f.id}">
+                        <td class="py-2 px-2 text-gray-300">${f.date || '-'}</td>
+                        <td class="py-2 px-2 text-gray-300">${f.product_name || '-'}</td>
+                        <td class="py-2 px-2 text-gray-300">${f.batch_number || '-'}</td>
+                        <td class="py-2 px-2 text-gray-300">${f.analyst_name || '-'}</td>
+                        <td class="py-2 px-2">
+                            <button class="delete-finding text-red-400 hover:text-red-300" data-id="${f.id}">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+
+            addManagementEventListeners();
+        }
+
+        function createMasterItem(item, type) {
+            return `
+                <div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${item.id}">
+                    <span class="font-medium">${item.name}</span>
+                    <div class="flex gap-2">
+                        <button class="edit-${type} text-blue-400 hover:text-blue-300 p-1" data-id="${item.id}">✏️</button>
+                        <button class="delete-${type} text-red-400 hover:text-red-300 p-1" data-id="${item.id}">🗑️</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function createProductItem(product) {
+            const paramsHtml = product.parameters && product.parameters.length > 0 ?
+                product.parameters.map(p => `<span class="parameter-tag">${p}</span>`).join('') :
+                '<span class="text-gray-500 text-xs">BELUM ADA PARAMETER</span>';
+
+            return `
+                <div class="flex flex-col gap-2 bg-gray-700 rounded-lg px-4 py-3" data-id="${product.id}">
+                    <div class="flex items-center justify-between">
+                        <span class="font-medium text-emerald-400">${product.name}</span>
+                        <div class="flex gap-2">
+                            <button class="edit-product text-blue-400 hover:text-blue-300 p-1" data-id="${product.id}">✏️</button>
+                            <button class="delete-product text-red-400 hover:text-red-300 p-1" data-id="${product.id}">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-gray-400">PARAMETER:</span>
+                        ${paramsHtml}
+                        <button class="add-param-btn text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition" data-id="${product.id}">+ TAMBAH</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addManagementEventListeners() {
+            ['analyst', 'category'].forEach(type => {
+                document.querySelectorAll(`.edit-${type}`).forEach(btn => {
+                    btn.addEventListener('click', () => openEditModal(type, btn.dataset.id));
+                });
+                document.querySelectorAll(`.delete-${type}`).forEach(btn => {
+                    btn.addEventListener('click', () => openDeleteModal(type, btn.dataset.id));
+                });
+            });
+
+            document.querySelectorAll('.edit-product').forEach(btn => {
+                btn.addEventListener('click', () => openEditModal('product', btn.dataset.id));
+            });
+            document.querySelectorAll('.delete-product').forEach(btn => {
+                btn.addEventListener('click', () => openDeleteModal('product', btn.dataset.id));
+            });
+            document.querySelectorAll('.add-param-btn').forEach(btn => {
+                btn.addEventListener('click', () => openAddParameterModal(btn.dataset.id));
+            });
+            document.querySelectorAll('.edit-target').forEach(btn => {
+                btn.addEventListener('click', () => openEditTargetModal(btn.dataset.id));
+            });
+            document.querySelectorAll('.delete-target').forEach(btn => {
+                btn.addEventListener('click', () => openDeleteModal('target', btn.dataset.id));
+            });
+            document.querySelectorAll('.delete-finding').forEach(btn => {
+                btn.addEventListener('click', () => openDeleteModal('finding', btn.dataset.id));
+            });
+        }
+
+        // ============================================================
+        // PARAMETER MANAGEMENT
+        // ============================================================
+        function openAddParameterModal(productId) {
+            document.getElementById('edit-value').placeholder = 'MASUKKAN NAMA PARAMETER';
+            document.getElementById('edit-value').value = '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+
+            editCallback = () => {
+                const paramName = document.getElementById('edit-value').value.trim().toUpperCase();
+                if (!paramName) {
+                    showToast('PARAMETER TIDAK BOLEH KOSONG', 'error');
+                    return;
+                }
+
+                const product = store.products.find(p => p.id === productId);
+                if (!product) {
+                    showToast('PRODUK TIDAK DITEMUKAN', 'error');
+                    return;
+                }
+
+                if (!product.parameters) product.parameters = [];
+                if (product.parameters.includes(paramName)) {
+                    showToast('PARAMETER SUDAH ADA', 'error');
+                    return;
+                }
+
+                product.parameters.push(paramName);
+                saveStore();
+                refreshAll();
+                addAuditLog('UPDATE', `ADDED PARAMETER "${paramName}" TO PRODUCT "${product.name}"`, product.name);
+                showToast('PARAMETER BERHASIL DITAMBAHKAN', 'success');
+                document.getElementById('edit-modal').classList.add('hidden');
+            };
+        }
+
+        // ============================================================
+        // INPUT FORM - PRODUCT CHANGE HANDLER
+        // ============================================================
+        function setupProductChangeHandler() {
+            document.getElementById('input-product').addEventListener('change', function() {
+                const productId = this.value;
+                const container = document.getElementById('parameter-container');
+
+                if (!productId) {
+                    container.innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
+                    return;
+                }
+
+                const params = getProductParameters(productId);
+                if (params.length === 0) {
+                    container.innerHTML = '<span class="text-gray-400 text-sm">BELUM ADA PARAMETER UNTUK PRODUK INI</span>';
+                    return;
+                }
+
+                let html = '<div class="flex flex-wrap gap-2 w-full"><span class="text-xs text-gray-400 w-full">PILIH PARAMETER:</span>';
+                params.forEach(p => {
+                    html += `
+                        <label class="flex items-center gap-1 bg-gray-600/50 px-3 py-1 rounded-lg cursor-pointer hover:bg-gray-600 transition">
+                            <input type="checkbox" class="param-checkbox text-emerald-600 rounded" value="${p}">
+                            <span class="text-sm">${p}</span>
+                        </label>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+            });
+        }
+
+        // ============================================================
+        // AUDIT TRAIL
+        // ============================================================
+        function updateAuditTable(filteredLogs = null) {
+            const logs = filteredLogs || store.auditLogs;
+            const tbody = document.getElementById('audit-table');
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="py-8 text-center text-gray-500">TIDAK ADA LOG</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = logs.map(log => {
+                const actionColor = log.action === 'CREATE' ? 'text-emerald-400' :
+                    log.action === 'UPDATE' ? 'text-blue-400' :
+                    log.action === 'DELETE' ? 'text-red-400' : 'text-amber-400';
+                return `
+                    <tr class="hover:bg-gray-700/50">
+                        <td class="py-3 px-3 text-gray-300 text-xs">${new Date(log.created_at).toLocaleString('ID-id')}</td>
+                        <td class="py-3 px-3"><span class="px-2 py-1 rounded text-xs font-medium ${actionColor}">${log.action}</span></td>
+                        <td class="py-3 px-3 text-gray-300 text-xs">${log.details}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ============================================================
+        // MODAL FUNCTIONS
+        // ============================================================
+        function openDeleteModal(type, id) {
+            document.getElementById('delete-modal').classList.remove('hidden');
+            deleteCallback = () => {
+                let item = null;
+                let name = '';
+
+                if (type === 'analyst') {
+                    item = store.analysts.find(a => a.id === id);
+                    if (item) { name = item.name; store.analysts = store.analysts.filter(a => a.id !== id); }
+                } else if (type === 'product') {
+                    item = store.products.find(p => p.id === id);
+                    if (item) { name = item.name; store.products = store.products.filter(p => p.id !== id); }
+                } else if (type === 'category') {
+                    item = store.categories.find(c => c.id === id);
+                    if (item) { name = item.name; store.categories = store.categories.filter(c => c.id !== id); }
+                } else if (type === 'target') {
+                    item = store.targets.find(t => t.id === id);
+                    if (item) { name = item.target_month; store.targets = store.targets.filter(t => t.id !== id); }
+                } else if (type === 'finding') {
+                    item = store.findings.find(f => f.id === id);
+                    if (item) { name = item.batch_number || id; store.findings = store.findings.filter(f => f.id !== id); }
+                }
+
+                if (item) {
+                    saveStore();
+                    addAuditLog('DELETE', `DELETED ${type.toUpperCase()}: ${name}`);
+                    refreshAll();
+                    showToast('DATA BERHASIL DIHAPUS', 'success');
+                }
+                document.getElementById('delete-modal').classList.add('hidden');
+            };
+        }
+
+        function openEditModal(type, id) {
+            let item = null;
+            let label = '';
+
+            if (type === 'analyst') {
+                item = store.analysts.find(a => a.id === id);
+                label = 'INISIAL ANALYST';
+            } else if (type === 'product') {
+                item = store.products.find(p => p.id === id);
+                label = 'KODE PRODUK';
+            } else if (type === 'category') {
+                item = store.categories.find(c => c.id === id);
+                label = 'NAMA KATEGORI';
+            }
+
+            if (!item) return;
+
+            document.getElementById('edit-value').placeholder = label;
+            document.getElementById('edit-value').value = item.name || '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+
+            editCallback = () => {
+                const newValue = document.getElementById('edit-value').value.trim().toUpperCase();
+                if (!newValue) {
+                    showToast('NILAI TIDAK BOLEH KOSONG', 'error');
+                    return;
+                }
+
+                const oldName = item.name;
+                item.name = newValue;
+                saveStore();
+                addAuditLog('UPDATE', `UPDATED ${type.toUpperCase()}: ${oldName} → ${newValue}`);
+                refreshAll();
+                showToast('DATA BERHASIL DIUPDATE', 'success');
+                document.getElementById('edit-modal').classList.add('hidden');
+            };
+        }
+
+        function openEditTargetModal(id) {
+            const target = store.targets.find(t => t.id === id);
+            if (!target) return;
+
+            document.getElementById('edit-value').placeholder = 'NILAI TARGET';
+            document.getElementById('edit-value').value = target.target_value || '';
+            document.getElementById('edit-modal').classList.remove('hidden');
+
+            editCallback = () => {
+                const newValue = parseInt(document.getElementById('edit-value').value);
+                if (isNaN(newValue) || newValue <= 0) {
+                    showToast('NILAI TARGET TIDAK VALID', 'error');
+                    return;
+                }
+
+                const oldValue = target.target_value;
+                target.target_value = newValue;
+                saveStore();
+                addAuditLog('UPDATE', `UPDATED TARGET ${target.target_month}: ${oldValue} → ${newValue}`);
+                refreshAll();
+                showToast('TARGET BERHASIL DIUPDATE', 'success');
+                document.getElementById('edit-modal').classList.add('hidden');
+            };
+        }
+
+        // ============================================================
+        // REFRESH ALL
+        // ============================================================
+        function refreshAll() {
+            updateDropdowns();
+            updateDashboard();
+            updateManagementLists();
+            updateAuditTable();
+            updateAllTrendTables();
+        }
+
+        // ============================================================
+        // TAB NAVIGATION
+        // ============================================================
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (btn.dataset.tab !== 'management' && isAdminLoggedIn) {
+                    isAdminLoggedIn = false;
+                    document.getElementById('admin-panel').classList.add('hidden');
+                    document.getElementById('admin-login').classList.remove('hidden');
+                    document.getElementById('admin-password').value = '';
+                }
+
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active', 'text-emerald-400'));
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.add('text-gray-400'));
+                btn.classList.add('tab-active', 'text-emerald-400');
+                btn.classList.remove('text-gray-400');
+
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(`${btn.dataset.tab}-tab`).classList.remove('hidden');
+            });
+        });
+
+        document.querySelectorAll('.mgmt-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.mgmt-tab').forEach(t => {
+                    t.classList.remove('mgmt-tab-active', 'border-emerald-500', 'text-emerald-400', 'border-b-2');
+                    t.classList.add('text-gray-400');
+                });
+                tab.classList.add('mgmt-tab-active', 'border-emerald-500', 'text-emerald-400', 'border-b-2');
+                tab.classList.remove('text-gray-400');
+
+                document.querySelectorAll('.mgmt-content').forEach(c => c.classList.add('hidden'));
+                document.getElementById(`mgmt-${tab.dataset.mgmt}`).classList.remove('hidden');
+            });
+        });
+
+        // ============================================================
+        // MODAL EVENT LISTENERS
+        // ============================================================
+        document.getElementById('confirm-delete').addEventListener('click', () => {
+            if (deleteCallback) deleteCallback();
+        });
+        document.getElementById('cancel-delete').addEventListener('click', () => {
+            document.getElementById('delete-modal').classList.add('hidden');
+        });
+        document.getElementById('confirm-edit').addEventListener('click', () => {
+            if (editCallback) editCallback();
+        });
+        document.getElementById('cancel-edit').addEventListener('click', () => {
+            document.getElementById('edit-modal').classList.add('hidden');
+        });
+
+        // ============================================================
+        // SUBMIT FINDING - TANPA FORM
+        // ============================================================
+        document.getElementById('submit-finding').addEventListener('click', async function() {
+            const btn = this;
+            btn.disabled = true;
+            btn.innerHTML = '⏳ MENYIMPAN...';
+
+            try {
+                const productId = document.getElementById('input-product').value;
+                const categoryId = document.getElementById('input-category').value;
+                const analystId = document.getElementById('input-analyst').value;
+                const batchNumber = document.getElementById('input-batch').value.toUpperCase();
+                const description = document.getElementById('input-description').value.toUpperCase();
+                const date = document.getElementById('input-date').value;
+
+                // Validasi
+                if (!productId || !categoryId || !analystId || !batchNumber || !description || !date) {
+                    showToast('SEMUA FIELD WAJIB DIISI!', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
+                    return;
+                }
+
+                const paramCheckboxes = document.querySelectorAll('.param-checkbox:checked');
+                const selectedParams = Array.from(paramCheckboxes).map(cb => cb.value);
+
+                if (selectedParams.length === 0) {
+                    showToast('PILIH MINIMAL 1 PARAMETER', 'error');
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
+                    return;
+                }
+
+                const photoInput = document.getElementById('input-photo');
+                let photoData = null;
+                if (photoInput.files && photoInput.files[0]) {
+                    photoData = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.readAsDataURL(photoInput.files[0]);
+                    });
+                }
+
+                const productName = getProductName(productId);
+                const categoryName = getCategoryName(categoryId);
+                const analystName = getAnalystName(analystId);
+
+                for (const param of selectedParams) {
+                    store.findings.push({
+                        id: DB.id(),
+                        date: date,
+                        product_id: productId,
+                        product_name: productName,
+                        category_id: categoryId,
+                        category_name: categoryName,
+                        analyst_id: analystId,
+                        analyst_name: analystName,
+                        batch_number: batchNumber,
+                        parameter: param,
+                        description: description,
+                        photo: photoData,
+                        created_at: new Date().toISOString()
+                    });
+                }
+
+                saveStore();
+                addAuditLog('CREATE', `NEW FINDING: BATCH ${batchNumber}, PRODUCT ${productName}, PARAMS: ${selectedParams.join(', ')}`, productName, categoryName, analystName);
+
+                showToast(`${selectedParams.length} TEMUAN BERHASIL DISIMPAN`, 'success');
+                
+                // Reset form manually
+                document.getElementById('input-product').value = '';
+                document.getElementById('input-batch').value = '';
+                document.getElementById('input-description').value = '';
+                document.getElementById('input-photo').value = '';
+                document.getElementById('input-category').value = '';
+                document.getElementById('input-analyst').value = '';
+                document.getElementById('parameter-container').innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
+                
+                // Reset date to today
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                document.getElementById('input-date').value = `${year}-${month}-${day}`;
+
+                refreshAll();
+
+            } catch (error) {
+                console.error('Error saving finding:', error);
+                showToast('GAGAL MENYIMPAN TEMUAN: ' + error.message, 'error');
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
+        });
+
+        // ============================================================
+        // RESET FINDING - TANPA FORM
+        // ============================================================
+        document.getElementById('reset-finding').addEventListener('click', function() {
+            document.getElementById('input-product').value = '';
+            document.getElementById('input-batch').value = '';
+            document.getElementById('input-description').value = '';
+            document.getElementById('input-photo').value = '';
+            document.getElementById('input-category').value = '';
+            document.getElementById('input-analyst').value = '';
+            document.getElementById('parameter-container').innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
+            
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            document.getElementById('input-date').value = `${year}-${month}-${day}`;
+            
+            showToast('FORM TELAH DIRESET', 'info');
+        });
+
+        // ============================================================
+        // ADMIN LOGIN
+        // ============================================================
+        document.getElementById('admin-login-btn').addEventListener('click', () => {
+            const password = document.getElementById('admin-password').value;
+            if (password === 'admin123') {
+                isAdminLoggedIn = true;
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                addAuditLog('LOGIN', 'ADMIN LOGIN SUCCESSFUL');
+                showToast('LOGIN BERHASIL', 'success');
+            } else {
+                showToast('PASSWORD SALAH', 'error');
+            }
+        });
+
+        document.getElementById('admin-logout').addEventListener('click', () => {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-panel').classList.add('hidden');
+            document.getElementById('admin-login').classList.remove('hidden');
+            document.getElementById('admin-password').value = '';
+            addAuditLog('LOGOUT', 'ADMIN LOGOUT');
+            showToast('LOGOUT BERHASIL', 'info');
+        });
+
+        // ============================================================
+        // ADD MASTER DATA
+        // ============================================================
+        function addMasterData(type, inputId, storeKey) {
+            const input = document.getElementById(inputId);
+            const value = input.value.trim().toUpperCase();
+            if (!value) {
+                showToast('NILAI TIDAK BOLEH KOSONG', 'error');
+                return;
+            }
+
+            if (store[storeKey].some(item => item.name === value)) {
+                showToast('DATA SUDAH ADA', 'error');
+                return;
+            }
+
+            store[storeKey].push({ id: DB.id(), name: value });
+            saveStore();
+            addAuditLog('CREATE', `NEW ${type.toUpperCase()}: ${value}`);
+            showToast(`${type.toUpperCase()} BERHASIL DITAMBAHKAN`, 'success');
+            input.value = '';
+            refreshAll();
+        }
+
+        document.getElementById('add-analyst').addEventListener('click', () => addMasterData('analyst', 'new-analyst', 'analysts'));
+        document.getElementById('add-product').addEventListener('click', () => addMasterData('product', 'new-product', 'products'));
+        document.getElementById('add-category').addEventListener('click', () => addMasterData('category', 'new-category', 'categories'));
+
+        document.getElementById('add-target').addEventListener('click', () => {
+            const month = document.getElementById('new-target-month').value;
+            const value = parseInt(document.getElementById('new-target-value').value);
+
+            if (!month || isNaN(value) || value <= 0) {
+                showToast('DATA TIDAK VALID', 'error');
+                return;
+            }
+
+            if (store.targets.some(t => t.target_month === month)) {
+                showToast('TARGET BULAN INI SUDAH ADA', 'error');
+                return;
+            }
+
+            store.targets.push({ id: DB.id(), target_month: month, target_value: value });
+            saveStore();
+            addAuditLog('CREATE', `NEW TARGET: ${month} = ${value}`);
+            showToast('TARGET BERHASIL DITAMBAHKAN', 'success');
+            document.getElementById('new-target-month').value = '';
+            document.getElementById('new-target-value').value = '';
+            refreshAll();
+        });
+
+        // ============================================================
+        // FILTERS
+        // ============================================================
+        document.getElementById('apply-filter').addEventListener('click', updateDashboard);
+
+        document.getElementById('reset-filter').addEventListener('click', () => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const firstDay = `${year}-${month}-01`;
+            const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+            const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+
+            document.getElementById('filter-date-from').value = firstDay;
+            document.getElementById('filter-date-to').value = lastDayFormatted;
+
+            selectedFilters.products.clear();
+            selectedFilters.categories.clear();
+            selectedFilters.analysts.clear();
+
+            ['product', 'category', 'analyst'].forEach(type => {
+                const allCheck = document.getElementById(`filter-${type}-all`);
+                if (allCheck) allCheck.checked = true;
+                document.querySelectorAll(`.filter-${type}-checkbox`).forEach(cb => cb.checked = false);
+                updateMultiSelectLabel(type);
+            });
+
+            updateDashboard();
+        });
+
+        // ============================================================
+        // AUDIT FILTERS
+        // ============================================================
+        document.getElementById('audit-filter-btn').addEventListener('click', () => {
+            const dateFrom = document.getElementById('audit-date-from').value;
+            const dateTo = document.getElementById('audit-date-to').value;
+            const product = document.getElementById('audit-filter-product').value;
+            const category = document.getElementById('audit-filter-category').value;
+            const analyst = document.getElementById('audit-filter-initial').value;
+
+            let filtered = [...store.auditLogs];
+            if (dateFrom) filtered = filtered.filter(l => l.created_at >= dateFrom);
+            if (dateTo) filtered = filtered.filter(l => l.created_at <= dateTo + 'T23:59:59');
+            if (product) filtered = filtered.filter(l => l.product === product);
+            if (category) filtered = filtered.filter(l => l.category === category);
+            if (analyst) filtered = filtered.filter(l => l.analyst === analyst);
+
+            updateAuditTable(filtered);
+        });
+
+        document.getElementById('audit-reset-btn').addEventListener('click', () => {
+            document.getElementById('audit-date-from').value = '';
+            document.getElementById('audit-date-to').value = '';
+            document.getElementById('audit-filter-product').value = '';
+            document.getElementById('audit-filter-category').value = '';
+            document.getElementById('audit-filter-initial').value = '';
+            updateAuditTable();
+        });
+
+        // ============================================================
+        // EXPORT FUNCTIONS (disederhanakan)
+        // ============================================================
+        document.getElementById('export-pdf-findings').addEventListener('click', () => {
+            if (currentFilteredFindings.length === 0) {
+                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('LAPORAN DETAIL TEMUAN QC', 105, 15, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`Total Temuan: ${currentFilteredFindings.length}`, 105, 25, { align: 'center' });
+            doc.text(`Generated: ${new Date().toLocaleString('ID-id')}`, 105, 32, { align: 'center' });
+
+            let y = 45;
+            doc.setFontSize(8);
+            doc.setFillColor(40, 40, 40);
+            doc.setTextColor(255, 255, 255);
+            doc.rect(15, y - 5, 180, 7, 'F');
+
+            doc.text('NO', 17, y);
+            doc.text('TANGGAL', 27, y);
+            doc.text('BATCH', 45, y);
+            doc.text('ANALYST', 62, y);
+            doc.text('PARAMETER', 78, y);
+            doc.text('KATEGORI', 98, y);
+            doc.text('TEMUAN', 118, y);
+
+            y += 5;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(7);
+
+            currentFilteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((f, index) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                    doc.setFontSize(8);
+                    doc.setFillColor(40, 40, 40);
+                    doc.setTextColor(255, 255, 255);
+                    doc.rect(15, y - 5, 180, 7, 'F');
+                    doc.text('NO', 17, y);
+                    doc.text('TANGGAL', 27, y);
+                    doc.text('BATCH', 45, y);
+                    doc.text('ANALYST', 62, y);
+                    doc.text('PARAMETER', 78, y);
+                    doc.text('KATEGORI', 98, y);
+                    doc.text('TEMUAN', 118, y);
+                    y += 5;
+                    doc.setTextColor(0, 0, 0);
+                }
+
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]}`;
+                }
+
+                doc.text(`${index + 1}`, 17, y);
+                doc.text(formattedDate, 27, y);
+                doc.text(f.batch_number || '-', 45, y);
+                doc.text(f.analyst_name || '-', 62, y);
+                doc.text(f.parameter || '-', 78, y);
+                doc.text(f.category_name || '-', 98, y);
+
+                const desc = f.description || '-';
+                const lines = doc.splitTextToSize(desc, 55);
+                lines.forEach((line, idx) => {
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.text(line, 118, y);
+                    if (idx < lines.length - 1) y += 3;
+                });
+                y += 5;
+            });
+
+            doc.save(`QC_TEMUAN_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('PDF TEMUAN BERHASIL DIEXPORT', 'success');
+        });
+
+        document.getElementById('export-excel-findings').addEventListener('click', () => {
+            if (currentFilteredFindings.length === 0) {
+                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
+                return;
+            }
+
+            const excelData = currentFilteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
+                }
+                return {
+                    NO: index + 1,
+                    TANGGAL: formattedDate,
+                    'NO. BATCH': f.batch_number || '-',
+                    'INISIAL ANALYST': f.analyst_name || '-',
+                    PARAMETER: f.parameter || '-',
+                    KATEGORI: f.category_name || '-',
+                    'TEMUAN / DESKRIPSI': f.description || '-'
+                };
+            });
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Temuan QC");
+            XLSX.writeFile(wb, `QC_TEMUAN_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast('EXCEL TEMUAN BERHASIL DIEXPORT', 'success');
+        });
+
+        document.getElementById('export-pdf-audit').addEventListener('click', () => {
+            const dateFrom = document.getElementById('audit-date-from').value;
+            const dateTo = document.getElementById('audit-date-to').value;
+            const product = document.getElementById('audit-filter-product').value;
+            const category = document.getElementById('audit-filter-category').value;
+            const analyst = document.getElementById('audit-filter-initial').value;
+
+            let filtered = [...store.auditLogs];
+            if (dateFrom) filtered = filtered.filter(l => l.created_at >= dateFrom);
+            if (dateTo) filtered = filtered.filter(l => l.created_at <= dateTo + 'T23:59:59');
+            if (product) filtered = filtered.filter(l => l.product === product);
+            if (category) filtered = filtered.filter(l => l.category === category);
+            if (analyst) filtered = filtered.filter(l => l.analyst === analyst);
+
+            if (filtered.length === 0) {
+                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text('QC AUDIT TRAIL REPORT', 105, 20, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text(`GENERATED: ${new Date().toLocaleString('ID-id')}`, 105, 28, { align: 'center' });
+
+            let y = 40;
+            doc.setFontSize(8);
+            doc.text('TIMESTAMP', 15, y);
+            doc.text('ACTION', 65, y);
+            doc.text('DETAILS', 90, y);
+
+            y += 5;
+            doc.line(15, y, 195, y);
+            y += 5;
+
+            filtered.forEach(log => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+
+                const timestamp = new Date(log.created_at).toLocaleString('ID-id', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                doc.text(timestamp, 15, y);
+                doc.text(log.action || '', 65, y);
+
+                const details = log.details || '';
+                const lines = doc.splitTextToSize(details, 100);
+                lines.forEach((line, idx) => {
+                    if (y > 280) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.text(line, 90, y);
+                    if (idx < lines.length - 1) y += 4;
+                });
+                y += 6;
+            });
+
+            doc.save(`QC_AUDIT_${new Date().toISOString().split('T')[0]}.pdf`);
+            showToast('PDF AUDIT BERHASIL DIEXPORT', 'success');
+        });
+
+        // ============================================================
+        // THEME TOGGLE
+        // ============================================================
+        document.getElementById('theme-toggle').addEventListener('click', () => {
+            document.body.classList.toggle('bg-gray-100');
+            document.body.classList.toggle('bg-gray-900');
+            document.body.classList.toggle('text-gray-900');
+            document.body.classList.toggle('text-gray-100');
+        });
+
+        // ============================================================
+        // DATE/TIME UPDATE
+        // ============================================================
+        function updateDateTime() {
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('ID-id', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            }).toUpperCase();
+
+            document.getElementById('current-time').textContent = new Date().toLocaleTimeString('ID-id', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
+        function init() {
+            loadStore();
+
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const today = `${year}-${month}-${day}`;
+            document.getElementById('input-date').value = today;
+
+            const firstDay = `${year}-${month}-01`;
+            const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+            const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+            document.getElementById('filter-date-from').value = firstDay;
+            document.getElementById('filter-date-to').value = lastDayFormatted;
+
+            setupMultiSelectDropdowns();
+            setupProductChangeHandler();
+
+            refreshAll();
+
+            console.log('✅ QC Monitoring System initialized');
+            console.log('📊 Storage mode:', USE_LOCAL_STORAGE ? 'localStorage' : 'Memory (fallback)');
+            console.log('📊 Data:', store);
+        }
+
+        init();
+    </script>
+</body>
+</html>
