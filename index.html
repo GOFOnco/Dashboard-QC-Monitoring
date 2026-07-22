@@ -65,8 +65,16 @@
         .photo-thumb {
             width: 50px; height: 50px; object-fit: cover;
             border-radius: 4px; cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
         }
-        .photo-thumb:hover { opacity: 0.8; }
+        .photo-thumb:hover { 
+            opacity: 0.8; 
+            border-color: rgba(255,255,255,0.3);
+            transform: scale(1.05);
+        }
+        .photo-thumb-before { border-color: rgba(239, 68, 68, 0.3); }
+        .photo-thumb-after { border-color: rgba(34, 197, 94, 0.3); }
         .photo-zoom {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
@@ -139,7 +147,23 @@
         .status-open { background: #ef4444; color: white; }
         .status-closed { background: #22c55e; color: white; }
         .status-inprogress { background: #f59e0b; color: white; }
-        .hidden { display: none; }
+        .photo-label {
+            font-size: 0.55rem;
+            color: rgba(255,255,255,0.4);
+            display: block;
+            text-align: center;
+            margin-top: 2px;
+        }
+        .photo-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .photo-group .photo-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
     </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
@@ -755,12 +779,13 @@
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITEE</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AREA</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">SUB</th>
-                            <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO BEFORE</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO AFTER</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">STATUS</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AKSI</th>
                         </tr></thead>
-                        <tbody id="findings-5r-table">${store.findings5r.length === 0 ? '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}</tbody>
+                        <tbody id="findings-5r-table">${store.findings5r.length === 0 ? '<tr><td colspan="11" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}</tbody>
                     </table>
                 </div>
             `;
@@ -803,7 +828,7 @@
             const tbody = document.getElementById('findings-5r-table');
             if (!tbody) return;
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="11" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
                 return;
             }
 
@@ -814,10 +839,21 @@
                     const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
                     formattedDate = `${d} ${months[parseInt(m)-1]} ${y}`;
                 }
-                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="event.stopPropagation();openZoom('${f.photo}')">` : '-';
+                
+                // Foto Before
+                const photoBeforeHtml = f.photo ? 
+                    `<img src="${f.photo}" class="photo-thumb photo-thumb-before" onclick="event.stopPropagation();openZoom('${f.photo}')">` : 
+                    '<span class="text-gray-500 text-xs">-</span>';
+                
+                // Foto After
+                const photoAfterHtml = f.photo_after ? 
+                    `<img src="${f.photo_after}" class="photo-thumb photo-thumb-after" onclick="event.stopPropagation();openZoom('${f.photo_after}')">` : 
+                    '<span class="text-gray-500 text-xs">-</span>';
+                
                 const statusClass = f.status === 'closed' ? 'status-closed' : 'status-open';
                 const statusText = f.status === 'closed' ? 'CLOSED' : 'OPEN';
                 const closedInfo = f.closed_by ? `<div class="text-xs text-gray-400 mt-1">by: ${f.closed_by}</div>` : '';
+                
                 return `<tr class="hover:bg-gray-700/50">
                     <td class="py-3 px-3 text-gray-300">${index+1}</td>
                     <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
@@ -825,7 +861,8 @@
                     <td class="py-3 px-3 text-gray-300">${f.auditee_name||'-'}</td>
                     <td class="py-3 px-3 text-gray-300">${f.area_name||'-'}</td>
                     <td class="py-3 px-3 text-gray-300">${f.subarea||'-'}</td>
-                    <td class="py-3 px-3">${photoHtml}</td>
+                    <td class="py-3 px-3">${photoBeforeHtml}</td>
+                    <td class="py-3 px-3">${photoAfterHtml}</td>
                     <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan||'-'}</td>
                     <td class="py-3 px-3"><span class="status-badge ${statusClass}">${statusText}</span>${closedInfo}</td>
                     <td class="py-3 px-3">
@@ -914,7 +951,7 @@
         });
 
         // ============================================================
-        // INPUT 5R - DENGAN FILTER AREA BERDASARKAN AUDITEE
+        // INPUT 5R
         // ============================================================
         function loadInputForm5r() {
             const container = document.getElementById('input-tab');
@@ -949,23 +986,19 @@
             temuan5rItems = [];
             renderTemuan5rItems();
 
-            // Event listener untuk auditee change - update area dropdown di semua temuan
             document.getElementById('input-5r-auditee').addEventListener('change', function() {
                 const auditeeId = this.value;
-                // Update semua area dropdown di temuan items
                 document.querySelectorAll('.temuan-area-select').forEach(sel => {
                     const currentValue = sel.value;
                     const analystAreas = auditeeId ? getAreasByAnalyst(auditeeId) : [];
                     sel.innerHTML = '<option value="">PILIH AREA</option>' + 
                         analystAreas.map(a => `<option value="${a.id}" ${a.id === currentValue ? 'selected' : ''}>${a.name}</option>`).join('');
                     
-                    // Reset subarea jika area berubah
                     const index = parseInt(sel.dataset.index);
                     if (temuan5rItems[index]) {
                         temuan5rItems[index].areaId = sel.value;
                         temuan5rItems[index].subarea = '';
                     }
-                    // Trigger subarea update
                     sel.dispatchEvent(new Event('change'));
                 });
                 renderTemuan5rItems();
@@ -975,7 +1008,6 @@
                 const auditeeId = document.getElementById('input-5r-auditee').value;
                 temuan5rItems.push({ areaId: '', subarea: '', desc: '', photoData: null });
                 renderTemuan5rItems();
-                // Set area options berdasarkan auditee yang dipilih
                 if (auditeeId) {
                     document.querySelectorAll('.temuan-area-select').forEach(sel => {
                         const analystAreas = getAreasByAnalyst(auditeeId);
@@ -1165,7 +1197,8 @@
                 NO: i+1, TANGGAL: f.date||'-', AUDITOR: f.auditor_name||'-',
                 AUDITEE: f.auditee_name||'-', AREA: f.area_name||'-',
                 'SUB AREA': f.subarea||'-', TEMUAN: f.temuan||'-',
-                STATUS: f.status||'open', 'CLOSED BY': f.closed_by||'-'
+                STATUS: f.status||'open', 'CLOSED BY': f.closed_by||'-',
+                ACTION: f.action_taken||'-'
             }));
             const ws = XLSX.utils.json_to_sheet(excelData);
             const wb = XLSX.utils.book_new();
@@ -1191,7 +1224,7 @@
                                 <svg class="w-8 h-8 ${colorClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             </div>
                             <h2 class="text-lg font-bold text-white">ADMIN LOGIN</h2>
-                            <p class="text-xs text-gray-400 mt-1">PASSWORD: admin123</p>
+                            <p class="text-xs text-gray-400 mt-1">Hubungi Administrator!</p>
                         </div>
                         <input type="password" id="admin-password" placeholder="PASSWORD" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-${color}-500">
                         <button id="admin-login-btn" class="w-full mt-4 ${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} py-3 rounded-lg font-medium transition">🔓 LOGIN</button>
