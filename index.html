@@ -645,6 +645,55 @@
             updateDashboardBrft();
         }
 
+        // ============================================================
+        // FUNGSI UPDATE SUMMARY BRFT (FIX)
+        // ============================================================
+        function updateSummaryBrft(filtered) {
+            // Total temuan
+            document.getElementById('total-findings').textContent = filtered.length;
+            
+            // Unique batches
+            const uniqueBatches = new Set(filtered.map(f => f.batch_number).filter(Boolean));
+            document.getElementById('unique-batches').textContent = uniqueBatches.size;
+            
+            // Total dokumen (target per bulan)
+            const currentMonth = new Date().toISOString().substring(0, 7);
+            const target = store.targets.find(t => t.target_month === currentMonth);
+            const targetValue = target ? target.target_value : 0;
+            document.getElementById('target-docs').textContent = targetValue || '-';
+            
+            // % QC Pass
+            if (targetValue > 0) {
+                const findingsInMonth = store.findings.filter(f => f.date && f.date.startsWith(currentMonth));
+                const uniqueBatchSet = new Set(findingsInMonth.map(f => f.batch_number).filter(Boolean));
+                const passPercentage = ((targetValue - uniqueBatchSet.size) / targetValue) * 100;
+                const finalPercentage = Math.max(0, Math.min(100, passPercentage));
+                document.getElementById('qc-percentage').textContent = finalPercentage.toFixed(1) + '%';
+                
+                // Update indikator warna
+                const indicator = document.getElementById('qc-indicator');
+                if (indicator) {
+                    if (finalPercentage >= 80) {
+                        indicator.className = 'w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center';
+                        indicator.querySelector('svg').className = 'w-6 h-6 text-emerald-400';
+                    } else if (finalPercentage >= 50) {
+                        indicator.className = 'w-12 h-12 bg-yellow-500/20 rounded-xl flex items-center justify-center';
+                        indicator.querySelector('svg').className = 'w-6 h-6 text-yellow-400';
+                    } else {
+                        indicator.className = 'w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center';
+                        indicator.querySelector('svg').className = 'w-6 h-6 text-red-400';
+                    }
+                }
+            } else {
+                document.getElementById('qc-percentage').textContent = '-';
+                const indicator = document.getElementById('qc-indicator');
+                if (indicator) {
+                    indicator.className = 'w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center';
+                    indicator.querySelector('svg').className = 'w-6 h-6 text-gray-400';
+                }
+            }
+        }
+
         function updateDashboardBrft() {
             let filtered = [...store.findings];
             const dateFrom = document.getElementById('filter-date-from')?.value;
@@ -681,6 +730,7 @@
             }).join('');
 
             updateChartsBrft(filtered);
+            updateSummaryBrft(filtered); // <-- FIX: Tambahkan ini
             updateTrendTablesBrft(filtered);
         }
 
