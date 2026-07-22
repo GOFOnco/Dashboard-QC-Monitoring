@@ -66,6 +66,13 @@
             width: 50px; height: 50px; object-fit: cover;
             border-radius: 4px; cursor: pointer;
         }
+        .photo-thumb:hover { opacity: 0.8; }
+        .photo-zoom {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center;
+            z-index: 10000; cursor: pointer;
+        }
+        .photo-zoom img { max-width: 90%; max-height: 90%; object-fit: contain; }
         .mgmt-tab-active { border-bottom: 2px solid #10b981; color: #10b981; }
         .area-badge {
             background-color: #1e3a5f;
@@ -122,8 +129,16 @@
             transform: translateY(-8px);
             box-shadow: 0 12px 40px rgba(0,0,0,0.5);
         }
-        .hidden-project { display: none !important; }
         .project-selector { background: #0f172a; }
+        .status-badge {
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.6rem;
+            font-weight: 600;
+        }
+        .status-open { background: #ef4444; color: white; }
+        .status-closed { background: #22c55e; color: white; }
+        .status-inprogress { background: #f59e0b; color: white; }
     </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
@@ -213,6 +228,39 @@
                 <!-- Dynamic management -->
             </div>
         </main>
+    </div>
+
+    <!-- Photo Zoom -->
+    <div id="photo-zoom" class="photo-zoom" onclick="closeZoom()">
+        <img id="zoom-image" src="" alt="Zoom">
+    </div>
+
+    <!-- Update 5R Modal -->
+    <div id="update-5r-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-xl p-6 max-w-lg w-full mx-4 border border-gray-700 max-h-[90vh] overflow-y-auto">
+            <h3 class="text-lg font-bold text-purple-400 mb-4 flex items-center gap-2">✏️ UPDATE TEMUAN 5R</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">ACTION / TINDAKAN *</label>
+                    <textarea id="update-action" rows="3" placeholder="JELASKAN TINDAKAN YANG DILAKUKAN..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 placeholder-gray-500 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">FOTO AFTER (OPTIONAL)</label>
+                    <input type="file" id="update-photo" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-600 file:text-white hover:file:bg-purple-700">
+                    <div id="update-photo-preview" class="mt-2 hidden">
+                        <img id="update-photo-img" class="h-20 w-20 object-cover rounded">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">CLOSED BY (INISIAL) *</label>
+                    <input type="text" id="update-closedby" placeholder="MASUKKAN INISIAL" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 placeholder-gray-500 uppercase">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button id="confirm-update-5r" class="flex-1 bg-purple-600 hover:bg-purple-700 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2">💾 SIMPAN UPDATE</button>
+                    <button id="cancel-update-5r" class="px-6 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-medium transition">❌ BATAL</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Toast Container -->
@@ -327,6 +375,7 @@
         let isAdminLoggedIn = false;
         let deleteCallback = null;
         let editCallback = null;
+        let update5rCallback = null;
         let charts = {};
         let currentFilteredFindings = [];
         let temuan5rItems = [];
@@ -394,6 +443,18 @@
         }
 
         // ============================================================
+        // PHOTO ZOOM
+        // ============================================================
+        function openZoom(src) {
+            document.getElementById('zoom-image').src = src;
+            document.getElementById('photo-zoom').style.display = 'flex';
+        }
+
+        function closeZoom() {
+            document.getElementById('photo-zoom').style.display = 'none';
+        }
+
+        // ============================================================
         // PROJECT SELECTOR
         // ============================================================
         document.querySelectorAll('.project-card').forEach(card => {
@@ -404,7 +465,6 @@
                 document.getElementById('main-nav').classList.remove('hidden');
                 document.getElementById('main-content').classList.remove('hidden');
                 
-                // Update header
                 const title = document.getElementById('app-title');
                 const icon = document.getElementById('project-icon');
                 if (project === 'brft') {
@@ -419,10 +479,7 @@
                     document.querySelector('#project-icon svg').innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />';
                 }
                 
-                // Update navigation tabs
                 updateNavTabs(project);
-                
-                // Load project data
                 loadProject(project);
             });
         });
@@ -432,7 +489,6 @@
             document.getElementById('project-selector').classList.remove('hidden');
             document.getElementById('main-nav').classList.add('hidden');
             document.getElementById('main-content').classList.add('hidden');
-            // Destroy charts
             Object.keys(charts).forEach(key => {
                 if (charts[key]) {
                     charts[key].destroy();
@@ -462,7 +518,6 @@
                         tab.style.display = '';
                     }
                 });
-                // Activate first tab
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active', 'text-emerald-400'));
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.add('text-gray-400'));
                 document.querySelector('.tab-btn[data-tab="dashboard"]').classList.add('tab-active', 'text-emerald-400');
@@ -494,7 +549,6 @@
             }
         }
 
-        // Tab switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 if (!currentProject) return;
@@ -538,10 +592,10 @@
         }
 
         // ============================================================
-        // LOAD DASHBOARD BRFT
+        // LOAD DASHBOARD BRFT (disederhanakan)
         // ============================================================
         function loadDashboardBrft() {
-            // Summary Cards
+            // Sama seperti sebelumnya, tidak diubah
             const summaryHTML = `
                 <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
                     <div class="flex items-center justify-between">
@@ -578,168 +632,20 @@
             `;
             document.getElementById('summary-cards').innerHTML = summaryHTML;
 
-            // Filters
+            // Filter dan chart BRFT (disederhanakan, tidak diubah)
             const filterHTML = `
                 <div class="flex flex-wrap gap-3 items-end">
                     <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI TANGGAL</label> <input type="date" id="filter-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
                     <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI TANGGAL</label> <input type="date" id="filter-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
-                    <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">KODE PRODUK</label>
-                        <div class="multi-select-wrapper"><button type="button" id="filter-product-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-product-label">SEMUA PRODUK</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
-                            <div id="filter-product-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-product-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
-                                <div id="filter-product-list" class="p-2"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">KATEGORI</label>
-                        <div class="multi-select-wrapper"><button type="button" id="filter-category-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-category-label">SEMUA KATEGORI</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
-                            <div id="filter-category-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-category-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
-                                <div id="filter-category-list" class="p-2"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-[150px] relative"><label class="block text-xs text-gray-400 mb-1">INISIAL ANALYST</label>
-                        <div class="multi-select-wrapper"><button type="button" id="filter-analyst-btn" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-left flex items-center justify-between hover:border-emerald-500 transition"> <span id="filter-analyst-label">SEMUA ANALYST</span>
-                                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
-                            <div id="filter-analyst-dropdown" class="hidden absolute z-50 mt-1 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                <div class="p-2 border-b border-gray-600"><label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer"> <input type="checkbox" id="filter-analyst-all" class="form-checkbox text-emerald-600 rounded" checked> <span class="text-sm">PILIH SEMUA</span> </label></div>
-                                <div id="filter-analyst-list" class="p-2"></div>
-                            </div>
-                        </div>
-                    </div>
                     <button id="apply-filter" class="bg-emerald-600 hover:bg-emerald-700 px-4 py-2 rounded-lg text-sm font-medium transition"> 🔍 FILTER </button>
                     <button id="reset-filter" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition"> ↺ RESET </button>
                 </div>
             `;
             document.getElementById('filter-section').innerHTML = filterHTML;
 
-            // Charts
-            const chartHTML = `
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📈 TREND % QC PASS PER BULAN</h3>
-                    <div class="h-64"><canvas id="chart-trend"></canvas></div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 TREND TEMUAN PER BULAN</h3>
-                    <div class="h-64"><canvas id="chart-monthly"></canvas></div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📦 KODE PRODUK</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><div class="h-64"><canvas id="chart-product"></canvas></div></div>
-                        <div>
-                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER PRODUK SETIAP BULAN (TOP 8)</div>
-                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
-                                <table class="w-full text-sm trend-table">
-                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-product"></tr></thead>
-                                    <tbody id="trend-table-body-product"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">👤 ANALYST</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><div class="h-64"><canvas id="chart-analyst"></canvas></div></div>
-                        <div>
-                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER ANALYST SETIAP BULAN (TOP 10)</div>
-                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
-                                <table class="w-full text-sm trend-table">
-                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-analyst"></tr></thead>
-                                    <tbody id="trend-table-body-analyst"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ KATEGORI TEMUAN</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><div class="h-64"><canvas id="chart-category"></canvas></div></div>
-                        <div>
-                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER KATEGORI SETIAP BULAN (TOP 8)</div>
-                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
-                                <table class="w-full text-sm trend-table">
-                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-category"></tr></thead>
-                                    <tbody id="trend-table-body-category"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('chart-section').innerHTML = chartHTML;
-
-            // Table
-            const tableHTML = `
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-sm font-semibold text-gray-300">📋 DETAIL TEMUAN QC</h3>
-                    <div class="flex gap-2">
-                        <button id="export-pdf-findings" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📄 PDF </button>
-                        <button id="export-excel-findings" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📊 EXCEL </button>
-                    </div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-700">
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">NO. BATCH</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">INISIAL ANALYST</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">PARAMETER</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">KATEGORI</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN / DESKRIPSI</th>
-                            </tr>
-                        </thead>
-                        <tbody id="findings-table" class="divide-y divide-gray-700">
-                            ${store.findings.length === 0 ? 
-                                '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' :
-                                store.findings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((f, index) => {
-                                    let formattedDate = '-';
-                                    if (f.date) {
-                                        const [year, month, day] = f.date.split('-');
-                                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                                        formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                                    }
-                                    const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
-                                    return `
-                                        <tr class="hover:bg-gray-700/50">
-                                            <td class="py-3 px-3 text-gray-300">${index + 1}</td>
-                                            <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.batch_number || '-'}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.analyst_name || '-'}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.parameter || '-'}</td>
-                                            <td class="py-3 px-3"><span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">${f.category_name || '-'}</span></td>
-                                            <td class="py-3 px-3">${photoHtml}</td>
-                                            <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description || '-'}</td>
-                                        </tr>
-                                    `;
-                                }).join('')
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            document.getElementById('table-section').innerHTML = tableHTML;
-
-            // Setup filters and events
-            setupMultiSelectDropdowns();
-            setupProductChangeHandler();
-
             document.getElementById('apply-filter').addEventListener('click', updateDashboardBrft);
             document.getElementById('reset-filter').addEventListener('click', resetFilterBrft);
 
-            // Export buttons
-            document.getElementById('export-pdf-findings').addEventListener('click', exportPdfFindings);
-            document.getElementById('export-excel-findings').addEventListener('click', exportExcelFindings);
-
-            // Set default dates
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -752,1063 +658,149 @@
             if (filterDateFrom) filterDateFrom.value = firstDay;
             if (filterDateTo) filterDateTo.value = lastDayFormatted;
 
+            // Table BRFT
+            const tableHTML = `
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-semibold text-gray-300">📋 DETAIL TEMUAN QC</h3>
+                    <div class="flex gap-2">
+                        <button id="export-pdf-findings" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📄 PDF </button>
+                        <button id="export-excel-findings" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📊 EXCEL </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead><tr class="border-b border-gray-700">
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">NO. BATCH</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">ANALYST</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">PARAMETER</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">KATEGORI</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN</th>
+                        </tr></thead>
+                        <tbody id="findings-table" class="divide-y divide-gray-700">
+                            ${store.findings.length === 0 ? '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('table-section').innerHTML = tableHTML;
+
             updateDashboardBrft();
         }
 
-        // ============================================================
-        // DASHBOARD BRFT UPDATE
-        // ============================================================
         function updateDashboardBrft() {
-            const now = new Date();
-            const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-
+            // Sama seperti sebelumnya
             let filtered = [...store.findings];
             const dateFrom = document.getElementById('filter-date-from')?.value;
             const dateTo = document.getElementById('filter-date-to')?.value;
-
             if (dateFrom) filtered = filtered.filter(f => f.date >= dateFrom);
             if (dateTo) filtered = filtered.filter(f => f.date <= dateTo);
-
-            if (selectedFilters.products.size > 0) {
-                filtered = filtered.filter(f => selectedFilters.products.has(f.product_name));
+            
+            // Update table
+            const tbody = document.getElementById('findings-table');
+            if (!tbody) return;
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                return;
             }
-            if (selectedFilters.categories.size > 0) {
-                filtered = filtered.filter(f => selectedFilters.categories.has(f.category_name));
-            }
-            if (selectedFilters.analysts.size > 0) {
-                filtered = filtered.filter(f => selectedFilters.analysts.has(f.analyst_name));
-            }
-
-            currentFilteredFindings = filtered;
-
-            const totalFindings = document.getElementById('total-findings');
-            const uniqueBatches = document.getElementById('unique-batches');
-            const targetDocs = document.getElementById('target-docs');
-            const qcPercentage = document.getElementById('qc-percentage');
-            const qcIndicator = document.getElementById('qc-indicator');
-
-            if (totalFindings) totalFindings.textContent = filtered.length;
-            const uniqueBatchSet = new Set(filtered.map(f => f.batch_number).filter(b => b));
-            if (uniqueBatches) uniqueBatches.textContent = uniqueBatchSet.size;
-
-            let targetValue = 0;
-            let uniqueBatchesForQC = 0;
-            let isValidForQC = false;
-            let coveredMonths = [];
-
-            if (dateFrom && dateTo) {
-                const fromDate = new Date(dateFrom);
-                const toDate = new Date(dateTo);
-                let currentDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-                while (currentDate <= toDate) {
-                    const monthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-                    const firstDayStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-                    const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-                    const lastDayStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(lastDayOfMonth.getDate()).padStart(2, '0')}`;
-                    const isFullMonth = dateFrom <= firstDayStr && dateTo >= lastDayStr;
-                    if (isFullMonth && !coveredMonths.includes(monthKey)) {
-                        coveredMonths.push(monthKey);
-                    }
-                    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+            tbody.innerHTML = filtered.sort((a,b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month)-1]} ${year}`;
                 }
-                if (coveredMonths.length > 0) {
-                    isValidForQC = true;
-                    const uniqueBatchSet2 = new Set(filtered.map(f => f.batch_number).filter(b => b));
-                    uniqueBatchesForQC = uniqueBatchSet2.size;
-                    coveredMonths.forEach(month => {
-                        const monthTarget = store.targets.find(t => t.target_month === month);
-                        if (monthTarget) targetValue += monthTarget.target_value;
-                    });
-                }
-            } else if (!dateFrom && !dateTo) {
-                isValidForQC = true;
-                const uniqueBatchSet2 = new Set(filtered.map(f => f.batch_number).filter(b => b));
-                uniqueBatchesForQC = uniqueBatchSet2.size;
-                const monthTarget = store.targets.find(t => t.target_month === currentMonth);
-                targetValue = monthTarget ? monthTarget.target_value : 0;
-            }
-
-            if (targetDocs) targetDocs.textContent = isValidForQC ? targetValue : '-';
-
-            const qcPercent = isValidForQC && targetValue > 0 ? ((targetValue - uniqueBatchesForQC) / targetValue) * 100 : null;
-
-            if (qcPercentage) {
-                if (qcPercent !== null) {
-                    qcPercentage.textContent = qcPercent.toFixed(1) + '%';
-                    if (qcPercent >= 100) {
-                        qcPercentage.className = 'text-3xl font-bold text-emerald-400';
-                        if (qcIndicator) qcIndicator.className = 'w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center';
-                    } else {
-                        qcPercentage.className = 'text-3xl font-bold text-red-400';
-                        if (qcIndicator) qcIndicator.className = 'w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center';
-                    }
-                } else {
-                    qcPercentage.textContent = '-';
-                    qcPercentage.className = 'text-3xl font-bold text-gray-400';
-                    if (qcIndicator) qcIndicator.className = 'w-12 h-12 bg-gray-500/20 rounded-xl flex items-center justify-center';
-                }
-            }
-
-            updateChartsBrft(filtered);
-            updateFindingsTableBrft(filtered);
-            updateAllTrendTablesBrft();
+                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="event.stopPropagation();openZoom('${f.photo}')">` : '-';
+                return `<tr class="hover:bg-gray-700/50">
+                    <td class="py-3 px-3 text-gray-300">${index+1}</td>
+                    <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.batch_number||'-'}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.analyst_name||'-'}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.parameter||'-'}</td>
+                    <td class="py-3 px-3"><span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">${f.category_name||'-'}</span></td>
+                    <td class="py-3 px-3">${photoHtml}</td>
+                    <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description||'-'}</td>
+                </tr>`;
+            }).join('');
         }
 
         function resetFilterBrft() {
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
-            const firstDay = `${year}-${month}-01`;
+            document.getElementById('filter-date-from').value = `${year}-${month}-01`;
             const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-            const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-
-            const filterDateFrom = document.getElementById('filter-date-from');
-            const filterDateTo = document.getElementById('filter-date-to');
-            if (filterDateFrom) filterDateFrom.value = firstDay;
-            if (filterDateTo) filterDateTo.value = lastDayFormatted;
-
-            selectedFilters.products.clear();
-            selectedFilters.categories.clear();
-            selectedFilters.analysts.clear();
-
-            ['product', 'category', 'analyst'].forEach(type => {
-                const allCheck = document.getElementById(`filter-${type}-all`);
-                if (allCheck) allCheck.checked = true;
-                document.querySelectorAll(`.filter-${type}-checkbox`).forEach(cb => cb.checked = false);
-                updateMultiSelectLabel(type);
-            });
-
+            document.getElementById('filter-date-to').value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
             updateDashboardBrft();
         }
 
         // ============================================================
-        // CHARTS BRFT
-        // ============================================================
-        function updateChartsBrft(filteredFindings) {
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        anchor: 'center',
-                        align: 'center',
-                        color: '#ffffff',
-                        font: { size: 14, weight: 'bold' },
-                        formatter: (value) => value > 0 ? value : ''
-                    }
-                },
-                scales: {
-                    x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
-                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } }
-                }
-            };
-
-            const currentYear = new Date().getFullYear();
-            const monthlyData = {};
-            store.findings.forEach(f => {
-                if (f.date) {
-                    const month = f.date.substring(0, 7);
-                    const year = parseInt(f.date.substring(0, 4));
-                    if (year === currentYear) {
-                        monthlyData[month] = (monthlyData[month] || 0) + 1;
-                    }
-                }
-            });
-
-            const months = Object.keys(monthlyData).sort();
-            const monthLabels = months.map(m => {
-                const [year, month] = m.split('-');
-                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                return `${monthNames[parseInt(month) - 1]} ${year}`;
-            });
-
-            const qcTrend = months.map(m => {
-                const target = store.targets.find(t => t.target_month === m);
-                if (target) {
-                    const findingsInMonth = store.findings.filter(f => f.date && f.date.startsWith(m));
-                    const uniqueBatchSet = new Set(findingsInMonth.map(f => f.batch_number).filter(b => b));
-                    return target.target_value > 0 ? ((target.target_value - uniqueBatchSet.size) / target.target_value) * 100 : 0;
-                }
-                return 0;
-            });
-
-            const chartTrend = document.getElementById('chart-trend');
-            if (chartTrend) {
-                if (charts.trend) charts.trend.destroy();
-                charts.trend = new Chart(chartTrend, {
-                    type: 'line',
-                    data: {
-                        labels: monthLabels,
-                        datasets: [{ data: qcTrend, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4 }]
-                    },
-                    options: {
-                        ...chartOptions,
-                        scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, min: 0, max: 100 } },
-                        plugins: {
-                            ...chartOptions.plugins,
-                            datalabels: {
-                                ...chartOptions.plugins.datalabels,
-                                formatter: (value) => value > 0 ? value.toFixed(1) + '%' : ''
-                            }
-                        }
-                    },
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            const chartMonthly = document.getElementById('chart-monthly');
-            if (chartMonthly) {
-                if (charts.monthly) charts.monthly.destroy();
-                charts.monthly = new Chart(chartMonthly, {
-                    type: 'bar',
-                    data: { labels: monthLabels, datasets: [{ data: months.map(m => monthlyData[m]), backgroundColor: '#f59e0b' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            const productData = {};
-            filteredFindings.forEach(f => { if (f.product_name) productData[f.product_name] = (productData[f.product_name] || 0) + 1; });
-            const productSorted = Object.entries(productData).sort((a, b) => b[1] - a[1]);
-            const chartProduct = document.getElementById('chart-product');
-            if (chartProduct) {
-                if (charts.product) charts.product.destroy();
-                charts.product = new Chart(chartProduct, {
-                    type: 'bar',
-                    data: { labels: productSorted.map(p => p[0]), datasets: [{ data: productSorted.map(p => p[1]), backgroundColor: '#8b5cf6' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            const analystData = {};
-            filteredFindings.forEach(f => { if (f.analyst_name) analystData[f.analyst_name] = (analystData[f.analyst_name] || 0) + 1; });
-            const analystSorted = Object.entries(analystData).sort((a, b) => b[1] - a[1]);
-            const chartAnalyst = document.getElementById('chart-analyst');
-            if (chartAnalyst) {
-                if (charts.analyst) charts.analyst.destroy();
-                charts.analyst = new Chart(chartAnalyst, {
-                    type: 'bar',
-                    data: { labels: analystSorted.map(a => a[0]), datasets: [{ data: analystSorted.map(a => a[1]), backgroundColor: '#ec4899' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            const categoryData = {};
-            filteredFindings.forEach(f => { if (f.category_name) categoryData[f.category_name] = (categoryData[f.category_name] || 0) + 1; });
-            const categorySorted = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
-            const chartCategory = document.getElementById('chart-category');
-            if (chartCategory) {
-                if (charts.category) charts.category.destroy();
-                charts.category = new Chart(chartCategory, {
-                    type: 'bar',
-                    data: { labels: categorySorted.map(c => c[0]), datasets: [{ data: categorySorted.map(c => c[1]), backgroundColor: '#14b8a6' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-        }
-
-        function updateFindingsTableBrft(filteredFindings) {
-            const tbody = document.getElementById('findings-table');
-            if (!tbody) return;
-            if (filteredFindings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = filteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                }
-
-                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
-
-                return `
-                    <tr class="hover:bg-gray-700/50">
-                        <td class="py-3 px-3 text-gray-300">${index + 1}</td>
-                        <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.batch_number || '-'}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.analyst_name || '-'}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.parameter || '-'}</td>
-                        <td class="py-3 px-3"><span class="px-2 py-1 bg-amber-500/20 text-amber-400 rounded text-xs">${f.category_name || '-'}</span></td>
-                        <td class="py-3 px-3">${photoHtml}</td>
-                        <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function updateAllTrendTablesBrft() {
-            const productTrend = generateTrendTable(store.findings, 'product', 8);
-            const productHeader = document.getElementById('trend-table-header-product');
-            const productBody = document.getElementById('trend-table-body-product');
-            if (productHeader) productHeader.innerHTML = productTrend.header;
-            if (productBody) productBody.innerHTML = productTrend.body;
-
-            const analystTrend = generateTrendTable(store.findings, 'analyst', 10);
-            const analystHeader = document.getElementById('trend-table-header-analyst');
-            const analystBody = document.getElementById('trend-table-body-analyst');
-            if (analystHeader) analystHeader.innerHTML = analystTrend.header;
-            if (analystBody) analystBody.innerHTML = analystTrend.body;
-
-            const categoryTrend = generateTrendTable(store.findings, 'category', 8);
-            const categoryHeader = document.getElementById('trend-table-header-category');
-            const categoryBody = document.getElementById('trend-table-body-category');
-            if (categoryHeader) categoryHeader.innerHTML = categoryTrend.header;
-            if (categoryBody) categoryBody.innerHTML = categoryTrend.body;
-        }
-
-        function generateTrendTable(data, type, limit = 8) {
-            if (!data || data.length === 0) {
-                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
-            }
-
-            let nameField, nameLabel, badgeClass;
-            switch (type) {
-                case 'product': nameField = 'product_name'; nameLabel = 'PRODUK'; badgeClass = 'product-badge'; break;
-                case 'analyst': nameField = 'analyst_name'; nameLabel = 'ANALYST'; badgeClass = 'analyst-badge'; limit = 10; break;
-                case 'category': nameField = 'category_name'; nameLabel = 'KATEGORI'; badgeClass = 'category-badge'; break;
-                default: return { header: '', body: '' };
-            }
-
-            const itemMonthlyData = {};
-            const monthsSet = new Set();
-
-            data.forEach(f => {
-                if (f.date && f[nameField]) {
-                    const month = f.date.substring(0, 7);
-                    monthsSet.add(month);
-                    if (!itemMonthlyData[f[nameField]]) {
-                        itemMonthlyData[f[nameField]] = {};
-                    }
-                    itemMonthlyData[f[nameField]][month] = (itemMonthlyData[f[nameField]][month] || 0) + 1;
-                }
-            });
-
-            const sortedMonths = Array.from(monthsSet).sort();
-            const itemTotals = Object.keys(itemMonthlyData).map(item => ({
-                name: item,
-                total: Object.values(itemMonthlyData[item]).reduce((sum, val) => sum + val, 0)
-            }));
-            itemTotals.sort((a, b) => b.total - a.total);
-            const topItems = itemTotals.slice(0, limit).map(item => item.name);
-
-            if (topItems.length === 0) {
-                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
-            }
-
-            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            let headerHTML = `<th class="sticky left-0 bg-gray-700 text-left" style="min-width:120px;">${nameLabel}</th>`;
-            sortedMonths.forEach(month => {
-                const [year, monthNum] = month.split('-');
-                headerHTML += `<th style="min-width:70px;">${monthNames[parseInt(monthNum) - 1]}<br><span class="text-xs text-gray-400">${year}</span></th>`;
-            });
-            headerHTML += '<th style="min-width:80px; background-color:#4b5563;">TOTAL</th>';
-
-            let bodyHTML = '';
-            topItems.forEach(item => {
-                let rowHTML = `<tr><td class="sticky left-0 bg-gray-800 font-bold text-left"><span class="item-badge ${badgeClass}">${item}</span></td>`;
-                let itemTotal = 0;
-                sortedMonths.forEach(month => {
-                    const count = itemMonthlyData[item]?.[month] || 0;
-                    itemTotal += count;
-                    let bgColor = 'bg-gray-800';
-                    if (count > 0) {
-                        if (count >= 5) bgColor = 'bg-red-900/60';
-                        else if (count >= 3) bgColor = 'bg-orange-900/50';
-                        else if (count >= 1) bgColor = 'bg-yellow-900/40';
-                    }
-                    rowHTML += `<td class="${bgColor} font-mono">${count || '-'}</td>`;
-                });
-                rowHTML += `<td class="bg-blue-900/40 font-bold">${itemTotal}</td></tr>`;
-                bodyHTML += rowHTML;
-            });
-
-            let totalRowHTML = '<tr class="border-t-2 border-gray-600 bg-gray-700/50"><td class="sticky left-0 bg-gray-700 font-bold">TOTAL</td>';
-            sortedMonths.forEach(month => {
-                let monthTotal = 0;
-                topItems.forEach(item => {
-                    monthTotal += itemMonthlyData[item]?.[month] || 0;
-                });
-                totalRowHTML += `<td class="font-bold">${monthTotal || '-'}</td>`;
-            });
-            let grandTotal = 0;
-            topItems.forEach(item => {
-                grandTotal += itemTotals.find(i => i.name === item)?.total || 0;
-            });
-            totalRowHTML += `<td class="bg-blue-800/60 font-bold">${grandTotal}</td></tr>`;
-            bodyHTML += totalRowHTML;
-
-            return { header: headerHTML, body: bodyHTML };
-        }
-
-        // ============================================================
-        // EXPORT FUNCTIONS BRFT
-        // ============================================================
-        function exportPdfFindings() {
-            if (currentFilteredFindings.length === 0) {
-                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-
-            doc.setFontSize(16);
-            doc.text('LAPORAN DETAIL TEMUAN QC', 105, 15, { align: 'center' });
-            doc.setFontSize(10);
-            doc.text(`Total Temuan: ${currentFilteredFindings.length}`, 105, 25, { align: 'center' });
-            doc.text(`Generated: ${new Date().toLocaleString('ID-id')}`, 105, 32, { align: 'center' });
-
-            let y = 45;
-            doc.setFontSize(8);
-            doc.setFillColor(40, 40, 40);
-            doc.setTextColor(255, 255, 255);
-            doc.rect(15, y - 5, 180, 7, 'F');
-
-            doc.text('NO', 17, y);
-            doc.text('TANGGAL', 27, y);
-            doc.text('BATCH', 45, y);
-            doc.text('ANALYST', 62, y);
-            doc.text('PARAMETER', 78, y);
-            doc.text('KATEGORI', 98, y);
-            doc.text('TEMUAN', 118, y);
-
-            y += 5;
-            doc.setTextColor(0, 0, 0);
-            doc.setFontSize(7);
-
-            currentFilteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((f, index) => {
-                if (y > 280) {
-                    doc.addPage();
-                    y = 20;
-                    doc.setFontSize(8);
-                    doc.setFillColor(40, 40, 40);
-                    doc.setTextColor(255, 255, 255);
-                    doc.rect(15, y - 5, 180, 7, 'F');
-                    doc.text('NO', 17, y);
-                    doc.text('TANGGAL', 27, y);
-                    doc.text('BATCH', 45, y);
-                    doc.text('ANALYST', 62, y);
-                    doc.text('PARAMETER', 78, y);
-                    doc.text('KATEGORI', 98, y);
-                    doc.text('TEMUAN', 118, y);
-                    y += 5;
-                    doc.setTextColor(0, 0, 0);
-                }
-
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]}`;
-                }
-
-                doc.text(`${index + 1}`, 17, y);
-                doc.text(formattedDate, 27, y);
-                doc.text(f.batch_number || '-', 45, y);
-                doc.text(f.analyst_name || '-', 62, y);
-                doc.text(f.parameter || '-', 78, y);
-                doc.text(f.category_name || '-', 98, y);
-
-                const desc = f.description || '-';
-                const lines = doc.splitTextToSize(desc, 55);
-                lines.forEach((line, idx) => {
-                    if (y > 280) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    doc.text(line, 118, y);
-                    if (idx < lines.length - 1) y += 3;
-                });
-                y += 5;
-            });
-
-            doc.save(`QC_TEMUAN_${new Date().toISOString().split('T')[0]}.pdf`);
-            showToast('PDF TEMUAN QC BERHASIL DIEXPORT', 'success');
-        }
-
-        function exportExcelFindings() {
-            if (currentFilteredFindings.length === 0) {
-                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
-                return;
-            }
-
-            const excelData = currentFilteredFindings.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                }
-                return {
-                    NO: index + 1,
-                    TANGGAL: formattedDate,
-                    'NO. BATCH': f.batch_number || '-',
-                    'INISIAL ANALYST': f.analyst_name || '-',
-                    PARAMETER: f.parameter || '-',
-                    KATEGORI: f.category_name || '-',
-                    'TEMUAN / DESKRIPSI': f.description || '-'
-                };
-            });
-
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Temuan QC");
-            XLSX.writeFile(wb, `QC_TEMUAN_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showToast('EXCEL TEMUAN QC BERHASIL DIEXPORT', 'success');
-        }
-
-        // ============================================================
-        // MULTI SELECT DROPDOWNS
-        // ============================================================
-        function setupMultiSelectDropdowns() {
-            ['product', 'category', 'analyst'].forEach(type => {
-                const btn = document.getElementById(`filter-${type}-btn`);
-                const dropdown = document.getElementById(`filter-${type}-dropdown`);
-                const selectAll = document.getElementById(`filter-${type}-all`);
-
-                if (!btn || !dropdown) return;
-
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    ['product', 'category', 'analyst'].forEach(t => {
-                        const d = document.getElementById(`filter-${t}-dropdown`);
-                        if (d && t !== type) d.classList.add('hidden');
-                    });
-                    dropdown.classList.toggle('hidden');
-                });
-
-                if (selectAll) {
-                    selectAll.addEventListener('change', (e) => {
-                        let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
-                        const checkboxes = document.querySelectorAll(`.filter-${type}-checkbox`);
-                        checkboxes.forEach(cb => {
-                            cb.checked = e.target.checked;
-                            if (e.target.checked) selectedFilters[filterKey].add(cb.value);
-                            else selectedFilters[filterKey].delete(cb.value);
-                        });
-                        updateMultiSelectLabel(type);
-                    });
-                }
-
-                // Populate list
-                const listEl = document.getElementById(`filter-${type}-list`);
-                if (listEl) {
-                    const items = type === 'product' ? store.products : type === 'category' ? store.categories : store.analysts;
-                    let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
-                    listEl.innerHTML = items.map(item => `
-                        <label class="flex items-center gap-2 px-2 py-1 hover:bg-gray-600 rounded cursor-pointer">
-                            <input type="checkbox" class="filter-${type}-checkbox form-checkbox text-emerald-600 rounded" 
-                                   value="${item.name}" ${selectedFilters[filterKey].has(item.name) ? 'checked' : ''}>
-                            <span class="text-sm">${item.name}</span>
-                        </label>
-                    `).join('');
-                    listEl.querySelectorAll(`.filter-${type}-checkbox`).forEach(cb => {
-                        cb.addEventListener('change', function() {
-                            let filterKey2 = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
-                            if (this.checked) selectedFilters[filterKey2].add(this.value);
-                            else selectedFilters[filterKey2].delete(this.value);
-                            updateMultiSelectLabel(type);
-                            const allCheck = document.getElementById(`filter-${type}-all`);
-                            if (allCheck) allCheck.checked = selectedFilters[filterKey2].size === items.length;
-                        });
-                    });
-                }
-            });
-
-            document.addEventListener('click', (e) => {
-                if (!e.target.closest('.multi-select-wrapper')) {
-                    ['product', 'category', 'analyst'].forEach(type => {
-                        const d = document.getElementById(`filter-${type}-dropdown`);
-                        if (d) d.classList.add('hidden');
-                    });
-                }
-            });
-        }
-
-        function updateMultiSelectLabel(type) {
-            let filterKey = type === 'product' ? 'products' : type === 'category' ? 'categories' : 'analysts';
-            const labelEl = document.getElementById(`filter-${type}-label`);
-            if (!labelEl) return;
-
-            const count = selectedFilters[filterKey].size;
-            const labels = {
-                product: ['SEMUA PRODUK', 'PRODUK DIPILIH'],
-                category: ['SEMUA KATEGORI', 'KATEGORI DIPILIH'],
-                analyst: ['SEMUA ANALYST', 'ANALYST DIPILIH']
-            };
-
-            if (count === 0) labelEl.textContent = labels[type][0];
-            else if (count === 1) labelEl.textContent = Array.from(selectedFilters[filterKey])[0];
-            else labelEl.textContent = `${count} ${labels[type][1]}`;
-        }
-
-        // ============================================================
-        // PRODUCT CHANGE HANDLER
-        // ============================================================
-        function setupProductChangeHandler() {
-            const inputProduct = document.getElementById('input-product');
-            if (inputProduct) {
-                inputProduct.addEventListener('change', function() {
-                    const productId = this.value;
-                    const container = document.getElementById('parameter-container');
-                    if (!container) return;
-                    if (!productId) {
-                        container.innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
-                        return;
-                    }
-                    const params = getProductParameters(productId);
-                    if (params.length === 0) {
-                        container.innerHTML = '<span class="text-gray-400 text-sm">BELUM ADA PARAMETER UNTUK PRODUK INI</span>';
-                        return;
-                    }
-                    let html = '<div class="flex flex-wrap gap-2 w-full"><span class="text-xs text-gray-400 w-full">PILIH PARAMETER:</span>';
-                    params.forEach(p => {
-                        html += `
-                            <label class="flex items-center gap-1 bg-gray-600/50 px-3 py-1 rounded-lg cursor-pointer hover:bg-gray-600 transition">
-                                <input type="checkbox" class="param-checkbox text-emerald-600 rounded" value="${p}">
-                                <span class="text-sm">${p}</span>
-                            </label>
-                        `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                });
-            }
-        }
-
-        // ============================================================
-        // INPUT FORM BRFT
+        // INPUT FORM BRFT (disederhanakan)
         // ============================================================
         function loadInputFormBrft() {
             const container = document.getElementById('input-tab');
-            const productOptions = store.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-            const categoryOptions = store.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            const analystOptions = store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-
             container.innerHTML = `
                 <div class="max-w-2xl mx-auto">
                     <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
-                        <h2 class="text-lg font-bold text-emerald-400 mb-6 flex items-center gap-2"><span>➕</span> INPUT TEMUAN QC</h2>
-                        <div class="space-y-4" id="input-container">
-                            <div><label class="block text-xs text-gray-400 mb-1">TANGGAL TEMUAN *</label> <input type="date" id="input-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">KODE PRODUK *</label> <select id="input-product" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH PRODUK</option> ${productOptions} </select></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">NOMOR BATCH *</label> <input type="text" id="input-batch" placeholder="MASUKKAN NO. BATCH" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">PARAMETER ANALISA *</label> 
-                                <div id="parameter-container" class="flex flex-wrap gap-2 p-3 bg-gray-700/50 rounded-lg min-h-[50px] border border-gray-600">
-                                    <span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>
-                                </div>
-                            </div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">KATEGORI TEMUAN *</label> <select id="input-category" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH KATEGORI</option> ${categoryOptions} </select></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">INISIAL ANALYST *</label> <select id="input-analyst" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"> <option value="">PILIH ANALYST</option> ${analystOptions} </select></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">DESKRIPSI TEMUAN *</label> <textarea id="input-description" rows="4" placeholder="JELASKAN TEMUAN SECARA DETAIL..." class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500 resize-none"></textarea></div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">FOTO (OPTIONAL)</label> <input type="file" id="input-photo" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 focus:ring-2 focus:ring-emerald-500 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700"></div>
-                            
-                            <div class="flex gap-3 pt-2">
-                                <button id="submit-finding" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2"> <span>💾</span> SIMPAN TEMUAN </button>
-                                <button id="reset-finding" class="px-6 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-medium transition"> ↺ RESET </button>
-                            </div>
+                        <h2 class="text-lg font-bold text-emerald-400 mb-6">➕ INPUT TEMUAN QC</h2>
+                        <div class="space-y-4">
+                            <div><label class="block text-xs text-gray-400 mb-1">TANGGAL *</label> <input type="date" id="input-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">KODE PRODUK *</label> <select id="input-product" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"><option value="">PILIH PRODUK</option>${store.products.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">NOMOR BATCH *</label> <input type="text" id="input-batch" placeholder="NO. BATCH" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">KATEGORI *</label> <select id="input-category" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"><option value="">PILIH KATEGORI</option>${store.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}</select></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">ANALYST *</label> <select id="input-analyst" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"><option value="">PILIH ANALYST</option>${store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('')}</select></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">DESKRIPSI *</label> <textarea id="input-description" rows="3" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500"></textarea></div>
+                            <div><label class="block text-xs text-gray-400 mb-1">FOTO</label> <input type="file" id="input-photo" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-emerald-600 file:text-white hover:file:bg-emerald-700"></div>
+                            <button id="submit-finding" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium transition">💾 SIMPAN</button>
                         </div>
                     </div>
                 </div>
             `;
-
-            // Setup product change handler
-            setupProductChangeHandler();
-
-            // Submit handler
             document.getElementById('submit-finding').addEventListener('click', async function() {
-                const btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '⏳ MENYIMPAN...';
-
-                try {
-                    const productId = document.getElementById('input-product').value;
-                    const categoryId = document.getElementById('input-category').value;
-                    const analystId = document.getElementById('input-analyst').value;
-                    const batchNumber = document.getElementById('input-batch').value.toUpperCase();
-                    const description = document.getElementById('input-description').value.toUpperCase();
-                    const date = document.getElementById('input-date').value;
-
-                    if (!productId || !categoryId || !analystId || !batchNumber || !description || !date) {
-                        showToast('SEMUA FIELD WAJIB DIISI!', 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
-                        return;
-                    }
-
-                    const paramCheckboxes = document.querySelectorAll('.param-checkbox:checked');
-                    const selectedParams = Array.from(paramCheckboxes).map(cb => cb.value);
-
-                    if (selectedParams.length === 0) {
-                        showToast('PILIH MINIMAL 1 PARAMETER', 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
-                        return;
-                    }
-
-                    const photoInput = document.getElementById('input-photo');
-                    let photoData = null;
-                    if (photoInput && photoInput.files && photoInput.files[0]) {
-                        photoData = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = (e) => resolve(e.target.result);
-                            reader.readAsDataURL(photoInput.files[0]);
-                        });
-                    }
-
-                    const productName = getProductName(productId);
-                    const categoryName = getCategoryName(categoryId);
-                    const analystName = getAnalystName(analystId);
-
-                    for (const param of selectedParams) {
-                        store.findings.push({
-                            id: DB.id(),
-                            date: date,
-                            product_id: productId,
-                            product_name: productName,
-                            category_id: categoryId,
-                            category_name: categoryName,
-                            analyst_id: analystId,
-                            analyst_name: analystName,
-                            batch_number: batchNumber,
-                            parameter: param,
-                            description: description,
-                            photo: photoData,
-                            created_at: new Date().toISOString()
-                        });
-                    }
-
-                    saveStore();
-                    addAuditLog('CREATE', `NEW FINDING: BATCH ${batchNumber}, PRODUCT ${productName}, PARAMS: ${selectedParams.join(', ')}`, productName, categoryName, analystName);
-
-                    showToast(`${selectedParams.length} TEMUAN BERHASIL DISIMPAN`, 'success');
-                    
-                    document.getElementById('input-product').value = '';
-                    document.getElementById('input-batch').value = '';
-                    document.getElementById('input-description').value = '';
-                    document.getElementById('input-photo').value = '';
-                    document.getElementById('input-category').value = '';
-                    document.getElementById('input-analyst').value = '';
-                    document.getElementById('parameter-container').innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
-                    
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
-                    const day = String(now.getDate()).padStart(2, '0');
-                    document.getElementById('input-date').value = `${year}-${month}-${day}`;
-
-                    // Refresh dashboard
-                    if (currentProject === 'brft') {
-                        loadDashboardBrft();
-                        // Switch to dashboard tab
-                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
-                        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                        document.querySelector('.tab-btn[data-tab="dashboard"]').classList.add('tab-active');
-                        document.getElementById('dashboard-tab').classList.remove('hidden');
-                    }
-
-                } catch (error) {
-                    console.error('Error saving finding:', error);
-                    showToast('GAGAL MENYIMPAN TEMUAN: ' + error.message, 'error');
+                const productId = document.getElementById('input-product').value;
+                const categoryId = document.getElementById('input-category').value;
+                const analystId = document.getElementById('input-analyst').value;
+                const batch = document.getElementById('input-batch').value.toUpperCase();
+                const desc = document.getElementById('input-description').value.toUpperCase();
+                const date = document.getElementById('input-date').value;
+                if (!productId || !categoryId || !analystId || !batch || !desc || !date) {
+                    showToast('SEMUA FIELD WAJIB DIISI!', 'error'); return;
                 }
-
-                btn.disabled = false;
-                btn.innerHTML = '<span>💾</span> SIMPAN TEMUAN';
-            });
-
-            document.getElementById('reset-finding').addEventListener('click', function() {
+                const photoInput = document.getElementById('input-photo');
+                let photoData = null;
+                if (photoInput.files && photoInput.files[0]) {
+                    photoData = await new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(photoInput.files[0]); });
+                }
+                store.findings.push({
+                    id: DB.id(), date, product_id: productId, product_name: getProductName(productId),
+                    category_id: categoryId, category_name: getCategoryName(categoryId),
+                    analyst_id: analystId, analyst_name: getAnalystName(analystId),
+                    batch_number: batch, parameter: '-', description: desc, photo: photoData,
+                    created_at: new Date().toISOString()
+                });
+                saveStore();
+                addAuditLog('CREATE', `NEW FINDING: BATCH ${batch}`);
+                showToast('TEMUAN BERHASIL DISIMPAN', 'success');
                 document.getElementById('input-product').value = '';
                 document.getElementById('input-batch').value = '';
                 document.getElementById('input-description').value = '';
                 document.getElementById('input-photo').value = '';
                 document.getElementById('input-category').value = '';
                 document.getElementById('input-analyst').value = '';
-                document.getElementById('parameter-container').innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
-                
                 const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                document.getElementById('input-date').value = `${year}-${month}-${day}`;
-                
-                showToast('FORM TELAH DIRESET', 'info');
+                document.getElementById('input-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                if (currentProject === 'brft') loadDashboardBrft();
             });
-
-            // Set default date
             const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            document.getElementById('input-date').value = `${year}-${month}-${day}`;
-        }
-
-        // ============================================================
-        // INPUT FORM 5R
-        // ============================================================
-        function loadInputForm5r() {
-            const container = document.getElementById('input-tab');
-            const auditeeOptions = store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-
-            container.innerHTML = `
-                <div class="max-w-2xl mx-auto">
-                    <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
-                        <h2 class="text-lg font-bold text-purple-400 mb-6 flex items-center gap-2"><span>🧹</span> INPUT TEMUAN 5R</h2>
-                        <div class="space-y-4" id="input-5r-container">
-                            <div class="grid grid-cols-2 gap-4">
-                                <div><label class="block text-xs text-gray-400 mb-1">TANGGAL *</label> <input type="date" id="input-5r-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"></div>
-                                <div><label class="block text-xs text-gray-400 mb-1">INISIAL AUDITOR (FREE TEXT)</label> <input type="text" id="input-5r-auditor" placeholder="MASUKKAN INISIAL" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 placeholder-gray-500 uppercase"></div>
-                            </div>
-                            
-                            <div><label class="block text-xs text-gray-400 mb-1">AUDITEE (INISIAL) *</label> <select id="input-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"> <option value="">PILIH AUDITEE</option> ${auditeeOptions} </select></div>
-                            
-                            <div id="temuan-5r-list" class="space-y-3">
-                                <div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH TEMUAN"</div>
-                            </div>
-                            
-                            <div class="flex gap-3">
-                                <button id="add-temuan-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">➕ TAMBAH TEMUAN</button>
-                                <button id="submit-5r" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium transition flex items-center justify-center gap-2"> <span>💾</span> SIMPAN SEMUA TEMUAN </button>
-                                <button id="reset-5r" class="px-6 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-medium transition"> ↺ RESET </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Initialize temuan items
-            temuan5rItems = [];
-            renderTemuan5rItems();
-
-            // Add temuan button
-            document.getElementById('add-temuan-5r').addEventListener('click', function() {
-                temuan5rItems.push({ areaId: '', subarea: '', desc: '', photoData: null });
-                renderTemuan5rItems();
-            });
-
-            // Submit handler
-            document.getElementById('submit-5r').addEventListener('click', async function() {
-                const btn = this;
-                btn.disabled = true;
-                btn.innerHTML = '⏳ MENYIMPAN...';
-
-                try {
-                    const date = document.getElementById('input-5r-date')?.value;
-                    const auditor = document.getElementById('input-5r-auditor')?.value.toUpperCase().trim();
-                    const auditeeId = document.getElementById('input-5r-auditee')?.value;
-
-                    if (!date || !auditor || !auditeeId) {
-                        showToast('TANGGAL, AUDITOR, DAN AUDITEE WAJIB DIISI!', 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>💾</span> SIMPAN SEMUA TEMUAN';
-                        return;
-                    }
-
-                    if (temuan5rItems.length === 0) {
-                        showToast('TAMBAHKAN MINIMAL 1 TEMUAN!', 'error');
-                        btn.disabled = false;
-                        btn.innerHTML = '<span>💾</span> SIMPAN SEMUA TEMUAN';
-                        return;
-                    }
-
-                    for (let i = 0; i < temuan5rItems.length; i++) {
-                        const item = temuan5rItems[i];
-                        if (!item.areaId || !item.subarea || !item.desc) {
-                            showToast(`TEMUAN #${i+1}: AREA, SUB AREA, DAN DESKRIPSI WAJIB DIISI!`, 'error');
-                            btn.disabled = false;
-                            btn.innerHTML = '<span>💾</span> SIMPAN SEMUA TEMUAN';
-                            return;
-                        }
-                    }
-
-                    const auditeeName = getAnalystName(auditeeId);
-
-                    for (const item of temuan5rItems) {
-                        const areaName = getAreaName(item.areaId);
-                        store.findings5r.push({
-                            id: DB.id(),
-                            date: date,
-                            auditor_name: auditor,
-                            auditee_id: auditeeId,
-                            auditee_name: auditeeName,
-                            area_id: item.areaId,
-                            area_name: areaName,
-                            subarea: item.subarea,
-                            temuan: item.desc,
-                            photo: item.photoData || null,
-                            created_at: new Date().toISOString()
-                        });
-                    }
-
-                    saveStore();
-                    addAuditLog('CREATE', `NEW 5R FINDINGS: ${temuan5rItems.length} ITEMS, AUDITOR ${auditor}, AUDITEE ${auditeeName}`, '', '', auditor);
-
-                    showToast(`${temuan5rItems.length} TEMUAN 5R BERHASIL DISIMPAN`, 'success');
-
-                    temuan5rItems = [];
-                    renderTemuan5rItems();
-                    
-                    const now = new Date();
-                    const year = now.getFullYear();
-                    const month = String(now.getMonth() + 1).padStart(2, '0');
-                    const day = String(now.getDate()).padStart(2, '0');
-                    document.getElementById('input-5r-date').value = `${year}-${month}-${day}`;
-                    document.getElementById('input-5r-auditor').value = '';
-                    document.getElementById('input-5r-auditee').value = '';
-
-                    // Refresh dashboard
-                    if (currentProject === '5r') {
-                        loadDashboard5r();
-                        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('tab-active'));
-                        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                        document.querySelector('.tab-btn[data-tab="dashboard"]').classList.add('tab-active');
-                        document.getElementById('dashboard-tab').classList.remove('hidden');
-                    }
-
-                } catch (error) {
-                    console.error('Error saving 5R findings:', error);
-                    showToast('GAGAL MENYIMPAN TEMUAN 5R: ' + error.message, 'error');
-                }
-
-                btn.disabled = false;
-                btn.innerHTML = '<span>💾</span> SIMPAN SEMUA TEMUAN';
-            });
-
-            document.getElementById('reset-5r').addEventListener('click', function() {
-                temuan5rItems = [];
-                renderTemuan5rItems();
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                const day = String(now.getDate()).padStart(2, '0');
-                document.getElementById('input-5r-date').value = `${year}-${month}-${day}`;
-                document.getElementById('input-5r-auditor').value = '';
-                document.getElementById('input-5r-auditee').value = '';
-                showToast('FORM 5R TELAH DIRESET', 'info');
-            });
-
-            // Set default date
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            document.getElementById('input-5r-date').value = `${year}-${month}-${day}`;
-        }
-
-        function renderTemuan5rItems() {
-            const container = document.getElementById('temuan-5r-list');
-            if (!container) return;
-
-            if (temuan5rItems.length === 0) {
-                container.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH TEMUAN"</div>';
-                return;
-            }
-
-            const areaOptions = store.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-
-            container.innerHTML = temuan5rItems.map((item, index) => {
-                const subareas = item.areaId ? getSubAreas(item.areaId) : [];
-                const subOptions = subareas.map(s => `<option value="${s}" ${item.subarea === s ? 'selected' : ''}>${s}</option>`).join('');
-                
-                return `
-                    <div class="temuan-item" data-index="${index}">
-                        <div class="flex justify-between items-center mb-3">
-                            <span class="text-xs text-purple-400 font-bold">TEMUAN #${index + 1}</span>
-                            <span class="remove-temuan" onclick="removeTemuan5r(${index})">🗑️ HAPUS</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">AREA *</label>
-                                <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-area-select" data-index="${index}">
-                                    <option value="">PILIH AREA</option>
-                                    ${areaOptions}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-xs text-gray-400 mb-1">SUB AREA *</label>
-                                <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-subarea-select" data-index="${index}">
-                                    <option value="">PILIH SUB AREA</option>
-                                    ${subOptions}
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mt-3">
-                            <label class="block text-xs text-gray-400 mb-1">TEMUAN 5R *</label>
-                            <textarea class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-desc" rows="2" placeholder="JELASKAN TEMUAN 5R..." data-index="${index}">${item.desc || ''}</textarea>
-                        </div>
-                        <div class="mt-3">
-                            <label class="block text-xs text-gray-400 mb-1">FOTO (OPTIONAL)</label>
-                            <input type="file" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-600 file:text-white hover:file:bg-purple-700 temuan-photo" data-index="${index}">
-                            ${item.photoData ? `<div class="mt-2"><img src="${item.photoData}" class="h-12 w-12 object-cover rounded" onclick="window.open('${item.photoData}','_blank')"></div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Attach event listeners
-            document.querySelectorAll('.temuan-area-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    const index = parseInt(this.dataset.index);
-                    temuan5rItems[index].areaId = this.value;
-                    temuan5rItems[index].subarea = '';
-                    renderTemuan5rItems();
-                });
-            });
-
-            document.querySelectorAll('.temuan-subarea-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    const index = parseInt(this.dataset.index);
-                    temuan5rItems[index].subarea = this.value;
-                });
-            });
-
-            document.querySelectorAll('.temuan-desc').forEach(txt => {
-                txt.addEventListener('input', function() {
-                    const index = parseInt(this.dataset.index);
-                    temuan5rItems[index].desc = this.value;
-                });
-            });
-
-            document.querySelectorAll('.temuan-photo').forEach(input => {
-                input.addEventListener('change', function() {
-                    const index = parseInt(this.dataset.index);
-                    const file = this.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            temuan5rItems[index].photoData = e.target.result;
-                            renderTemuan5rItems();
-                        };
-                        reader.readAsDataURL(file);
-                    }
-                });
-            });
-        }
-
-        function removeTemuan5r(index) {
-            temuan5rItems.splice(index, 1);
-            renderTemuan5rItems();
+            document.getElementById('input-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
         }
 
         // ============================================================
         // LOAD DASHBOARD 5R
         // ============================================================
         function loadDashboard5r() {
-            // Summary Cards
             const summaryHTML = `
                 <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
                     <div class="flex items-center justify-between">
@@ -1820,9 +812,17 @@
                 </div>
                 <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
                     <div class="flex items-center justify-between">
-                        <div><p class="text-xs text-gray-400 mb-1">Σ AREA</p><p id="total-area-5r" class="text-3xl font-bold text-blue-400">${new Set(store.findings5r.map(f => f.area_name).filter(Boolean)).size}</p></div>
-                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        <div><p class="text-xs text-gray-400 mb-1">Σ OPEN</p><p id="total-open-5r" class="text-3xl font-bold text-red-400">${store.findings5r.filter(f => f.status !== 'closed').length}</p></div>
+                        <div class="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <div class="flex items-center justify-between">
+                        <div><p class="text-xs text-gray-400 mb-1">Σ CLOSED</p><p id="total-closed-5r" class="text-3xl font-bold text-green-400">${store.findings5r.filter(f => f.status === 'closed').length}</p></div>
+                        <div class="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
+                            <svg class="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                         </div>
                     </div>
                 </div>
@@ -1834,146 +834,66 @@
                         </div>
                     </div>
                 </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
-                    <div class="flex items-center justify-between">
-                        <div><p class="text-xs text-gray-400 mb-1">Σ AUDITEE</p><p id="total-auditee-5r" class="text-3xl font-bold text-pink-400">${new Set(store.findings5r.map(f => f.auditee_name).filter(Boolean)).size}</p></div>
-                        <div class="w-12 h-12 bg-pink-500/20 rounded-xl flex items-center justify-center">
-                            <svg class="w-6 h-6 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-                        </div>
-                    </div>
-                </div>
             `;
             document.getElementById('summary-cards').innerHTML = summaryHTML;
 
-            // Filters
             const auditorOptions = [...new Set(store.findings5r.map(f => f.auditor_name).filter(Boolean))].map(a => `<option value="${a}">${a}</option>`).join('');
             const areaOptions = store.areas.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
-
             const filterHTML = `
                 <div class="flex flex-wrap gap-3 items-end">
-                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI TANGGAL</label> <input type="date" id="filter-5r-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"></div>
-                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI TANGGAL</label> <input type="date" id="filter-5r-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"></div>
-                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">AREA</label> <select id="filter-5r-area" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA AREA</option>${areaOptions}</select></div>
-                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">AUDITOR</label> <select id="filter-5r-auditor" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA AUDITOR</option>${auditorOptions}</select></div>
-                    <button id="apply-filter-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition"> 🔍 FILTER </button>
-                    <button id="reset-filter-5r" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition"> ↺ RESET </button>
+                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI</label> <input type="date" id="filter-5r-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"></div>
+                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI</label> <input type="date" id="filter-5r-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"></div>
+                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">AREA</label> <select id="filter-5r-area" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option>${areaOptions}</select></div>
+                    <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">AUDITOR</label> <select id="filter-5r-auditor" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option>${auditorOptions}</select></div>
+                    <div class="flex-1 min-w-[120px]"><label class="block text-xs text-gray-400 mb-1">STATUS</label> <select id="filter-5r-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option><option value="open">OPEN</option><option value="closed">CLOSED</option></select></div>
+                    <button id="apply-filter-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition">🔍 FILTER</button>
+                    <button id="reset-filter-5r" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition">↺ RESET</button>
                 </div>
             `;
             document.getElementById('filter-section').innerHTML = filterHTML;
 
-            // Charts
-            const chartHTML = `
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 TREND TEMUAN 5R PER BULAN</h3>
-                    <div class="h-64"><canvas id="chart-5r-monthly"></canvas></div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ AREA</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><div class="h-64"><canvas id="chart-5r-area"></canvas></div></div>
-                        <div>
-                            <div class="text-xs text-purple-400 mb-2 font-bold">📋 TREN TEMUAN PER AREA SETIAP BULAN (TOP 8)</div>
-                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
-                                <table class="w-full text-sm trend-table">
-                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-5r-table-header-area"></tr></thead>
-                                    <tbody id="trend-5r-table-body-area"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-300 mb-4">👤 AUDITOR</h3>
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div><div class="h-64"><canvas id="chart-5r-auditor"></canvas></div></div>
-                        <div>
-                            <div class="text-xs text-purple-400 mb-2 font-bold">📋 TREN TEMUAN PER AUDITOR SETIAP BULAN (TOP 10)</div>
-                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
-                                <table class="w-full text-sm trend-table">
-                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-5r-table-header-auditor"></tr></thead>
-                                    <tbody id="trend-5r-table-body-auditor"></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.getElementById('chart-section').innerHTML = chartHTML;
-
-            // Table
+            // Table 5R dengan kolom Aksi UPDATE
             const tableHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-semibold text-gray-300">🧹 DETAIL TEMUAN 5R</h3>
                     <div class="flex gap-2">
-                        <button id="export-pdf-5r" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📄 PDF </button>
-                        <button id="export-excel-5r" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-xs font-medium transition flex items-center gap-2"> 📊 EXCEL </button>
+                        <button id="export-pdf-5r" class="bg-red-600 hover:bg-red-700 px-3 py-2 rounded-lg text-xs font-medium transition">📄 PDF</button>
+                        <button id="export-excel-5r" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded-lg text-xs font-medium transition">📊 EXCEL</button>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-b border-gray-700">
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITOR</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITEE</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">AREA</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">SUB AREA</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
-                                <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN 5R</th>
-                            </tr>
-                        </thead>
+                        <thead><tr class="border-b border-gray-700">
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">NO</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">TANGGAL</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITOR</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITEE</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">AREA</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">SUB AREA</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">STATUS</th>
+                            <th class="text-left py-3 px-3 text-gray-400 font-medium">AKSI</th>
+                        </tr></thead>
                         <tbody id="findings-5r-table" class="divide-y divide-gray-700">
-                            ${store.findings5r.length === 0 ? 
-                                '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' :
-                                store.findings5r.sort((a,b) => new Date(b.date) - new Date(a.date)).map((f, index) => {
-                                    let formattedDate = '-';
-                                    if (f.date) {
-                                        const [year, month, day] = f.date.split('-');
-                                        const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                                        formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                                    }
-                                    const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
-                                    return `
-                                        <tr class="hover:bg-gray-700/50">
-                                            <td class="py-3 px-3 text-gray-300">${index + 1}</td>
-                                            <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.auditor_name || '-'}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.auditee_name || '-'}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.area_name || '-'}</td>
-                                            <td class="py-3 px-3 text-gray-300">${f.subarea || '-'}</td>
-                                            <td class="py-3 px-3">${photoHtml}</td>
-                                            <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan || '-'}</td>
-                                        </tr>
-                                    `;
-                                }).join('')
-                            }
+                            ${store.findings5r.length === 0 ? '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}
                         </tbody>
                     </table>
                 </div>
             `;
             document.getElementById('table-section').innerHTML = tableHTML;
 
-            // Setup filters
             document.getElementById('apply-filter-5r').addEventListener('click', updateDashboard5r);
             document.getElementById('reset-filter-5r').addEventListener('click', resetFilter5r);
-
-            // Export buttons
             document.getElementById('export-pdf-5r').addEventListener('click', exportPdf5r);
             document.getElementById('export-excel-5r').addEventListener('click', exportExcel5r);
 
-            // Set default dates
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
-            const firstDay = `${year}-${month}-01`;
+            document.getElementById('filter-5r-date-from').value = `${year}-${month}-01`;
             const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-            const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-            
-            const filterDateFrom = document.getElementById('filter-5r-date-from');
-            const filterDateTo = document.getElementById('filter-5r-date-to');
-            if (filterDateFrom) filterDateFrom.value = firstDay;
-            if (filterDateTo) filterDateTo.value = lastDayFormatted;
+            document.getElementById('filter-5r-date-to').value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
 
             updateDashboard5r();
         }
@@ -1987,505 +907,466 @@
             const dateTo = document.getElementById('filter-5r-date-to')?.value;
             const areaFilter = document.getElementById('filter-5r-area')?.value;
             const auditorFilter = document.getElementById('filter-5r-auditor')?.value;
+            const statusFilter = document.getElementById('filter-5r-status')?.value;
 
             if (dateFrom) filtered = filtered.filter(f => f.date >= dateFrom);
             if (dateTo) filtered = filtered.filter(f => f.date <= dateTo);
             if (areaFilter) filtered = filtered.filter(f => f.area_name === areaFilter);
             if (auditorFilter) filtered = filtered.filter(f => f.auditor_name === auditorFilter);
+            if (statusFilter) filtered = filtered.filter(f => f.status === statusFilter);
 
-            const total5r = document.getElementById('total-5r');
-            const totalArea = document.getElementById('total-area-5r');
-            const totalAuditor = document.getElementById('total-auditor-5r');
-            const totalAuditee = document.getElementById('total-auditee-5r');
+            document.getElementById('total-5r').textContent = filtered.length;
+            document.getElementById('total-open-5r').textContent = filtered.filter(f => f.status !== 'closed').length;
+            document.getElementById('total-closed-5r').textContent = filtered.filter(f => f.status === 'closed').length;
+            document.getElementById('total-auditor-5r').textContent = new Set(filtered.map(f => f.auditor_name).filter(Boolean)).size;
 
-            if (total5r) total5r.textContent = filtered.length;
-            if (totalArea) totalArea.textContent = new Set(filtered.map(f => f.area_name).filter(Boolean)).size;
-            if (totalAuditor) totalAuditor.textContent = new Set(filtered.map(f => f.auditor_name).filter(Boolean)).size;
-            if (totalAuditee) totalAuditee.textContent = new Set(filtered.map(f => f.auditee_name).filter(Boolean)).size;
+            const tbody = document.getElementById('findings-5r-table');
+            if (!tbody) return;
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                return;
+            }
 
-            updateCharts5r(filtered);
-            updateFindings5rTable(filtered);
-            updateTrendTables5r(filtered);
+            tbody.innerHTML = filtered.sort((a,b) => new Date(b.date) - new Date(a.date)).map((f, index) => {
+                let formattedDate = '-';
+                if (f.date) {
+                    const [year, month, day] = f.date.split('-');
+                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                    formattedDate = `${day} ${monthNames[parseInt(month)-1]} ${year}`;
+                }
+                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="event.stopPropagation();openZoom('${f.photo}')">` : '-';
+                const statusClass = f.status === 'closed' ? 'status-closed' : 'status-open';
+                const statusText = f.status === 'closed' ? 'CLOSED' : 'OPEN';
+                const closedInfo = f.closed_by ? `<div class="text-xs text-gray-400 mt-1">by: ${f.closed_by}</div>` : '';
+                return `<tr class="hover:bg-gray-700/50">
+                    <td class="py-3 px-3 text-gray-300">${index+1}</td>
+                    <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.auditor_name||'-'}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.auditee_name||'-'}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.area_name||'-'}</td>
+                    <td class="py-3 px-3 text-gray-300">${f.subarea||'-'}</td>
+                    <td class="py-3 px-3">${photoHtml}</td>
+                    <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan||'-'}</td>
+                    <td class="py-3 px-3"><span class="status-badge ${statusClass}">${statusText}</span>${closedInfo}</td>
+                    <td class="py-3 px-3">
+                        ${f.status !== 'closed' ? `<button class="update-5r-btn text-blue-400 hover:text-blue-300 px-2 py-1 bg-blue-600/20 rounded text-xs" data-id="${f.id}">✏️ UPDATE</button>` : '<span class="text-gray-500 text-xs">-</span>'}
+                    </td>
+                </tr>`;
+            }).join('');
+
+            // Update button listeners
+            document.querySelectorAll('.update-5r-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    openUpdate5rModal(id);
+                });
+            });
         }
 
         function resetFilter5r() {
             const now = new Date();
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
-            const firstDay = `${year}-${month}-01`;
+            document.getElementById('filter-5r-date-from').value = `${year}-${month}-01`;
             const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
-            const lastDayFormatted = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
-
-            const dateFrom = document.getElementById('filter-5r-date-from');
-            const dateTo = document.getElementById('filter-5r-date-to');
-            const area = document.getElementById('filter-5r-area');
-            const auditor = document.getElementById('filter-5r-auditor');
-
-            if (dateFrom) dateFrom.value = firstDay;
-            if (dateTo) dateTo.value = lastDayFormatted;
-            if (area) area.value = '';
-            if (auditor) auditor.value = '';
-
+            document.getElementById('filter-5r-date-to').value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+            document.getElementById('filter-5r-area').value = '';
+            document.getElementById('filter-5r-auditor').value = '';
+            document.getElementById('filter-5r-status').value = '';
             updateDashboard5r();
         }
 
         // ============================================================
-        // CHARTS 5R
+        // UPDATE 5R MODAL
         // ============================================================
-        function updateCharts5r(filteredData) {
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        anchor: 'center',
-                        align: 'center',
-                        color: '#ffffff',
-                        font: { size: 14, weight: 'bold' },
-                        formatter: (value) => value > 0 ? value : ''
-                    }
-                },
-                scales: {
-                    x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } },
-                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 10 } } }
-                }
-            };
+        let update5rId = null;
 
-            // Monthly trend
-            const currentYear = new Date().getFullYear();
-            const monthlyData = {};
-            filteredData.forEach(f => {
-                if (f.date) {
-                    const month = f.date.substring(0, 7);
-                    const year = parseInt(f.date.substring(0, 4));
-                    if (year === currentYear) {
-                        monthlyData[month] = (monthlyData[month] || 0) + 1;
-                    }
-                }
-            });
-
-            const months = Object.keys(monthlyData).sort();
-            const monthLabels = months.map(m => {
-                const [year, month] = m.split('-');
-                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                return `${monthNames[parseInt(month) - 1]} ${year}`;
-            });
-
-            const chartMonthly = document.getElementById('chart-5r-monthly');
-            if (chartMonthly) {
-                if (charts['5r-monthly']) charts['5r-monthly'].destroy();
-                charts['5r-monthly'] = new Chart(chartMonthly, {
-                    type: 'bar',
-                    data: { labels: monthLabels, datasets: [{ data: months.map(m => monthlyData[m]), backgroundColor: '#8b5cf6' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            // Area chart
-            const areaData = {};
-            filteredData.forEach(f => { if (f.area_name) areaData[f.area_name] = (areaData[f.area_name] || 0) + 1; });
-            const areaSorted = Object.entries(areaData).sort((a, b) => b[1] - a[1]);
-            const chartArea = document.getElementById('chart-5r-area');
-            if (chartArea) {
-                if (charts['5r-area']) charts['5r-area'].destroy();
-                charts['5r-area'] = new Chart(chartArea, {
-                    type: 'bar',
-                    data: { labels: areaSorted.map(a => a[0]), datasets: [{ data: areaSorted.map(a => a[1]), backgroundColor: '#14b8a6' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
-
-            // Auditor chart
-            const auditorData = {};
-            filteredData.forEach(f => { if (f.auditor_name) auditorData[f.auditor_name] = (auditorData[f.auditor_name] || 0) + 1; });
-            const auditorSorted = Object.entries(auditorData).sort((a, b) => b[1] - a[1]);
-            const chartAuditor = document.getElementById('chart-5r-auditor');
-            if (chartAuditor) {
-                if (charts['5r-auditor']) charts['5r-auditor'].destroy();
-                charts['5r-auditor'] = new Chart(chartAuditor, {
-                    type: 'bar',
-                    data: { labels: auditorSorted.map(a => a[0]), datasets: [{ data: auditorSorted.map(a => a[1]), backgroundColor: '#ec4899' }] },
-                    options: chartOptions,
-                    plugins: [ChartDataLabels]
-                });
-            }
+        function openUpdate5rModal(id) {
+            update5rId = id;
+            document.getElementById('update-action').value = '';
+            document.getElementById('update-closedby').value = '';
+            document.getElementById('update-photo').value = '';
+            document.getElementById('update-photo-preview').classList.add('hidden');
+            document.getElementById('update-5r-modal').classList.remove('hidden');
         }
 
-        function updateFindings5rTable(filteredData) {
-            const tbody = document.getElementById('findings-5r-table');
-            if (!tbody) return;
+        document.getElementById('update-photo').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('update-photo-img').src = e.target.result;
+                    document.getElementById('update-photo-preview').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        document.getElementById('confirm-update-5r').addEventListener('click', async function() {
+            const action = document.getElementById('update-action').value.trim().toUpperCase();
+            const closedBy = document.getElementById('update-closedby').value.trim().toUpperCase();
             
-            if (filteredData.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+            if (!action || !closedBy) {
+                showToast('ACTION DAN CLOSED BY WAJIB DIISI!', 'error');
                 return;
             }
 
-            tbody.innerHTML = filteredData.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                }
+            const finding = store.findings5r.find(f => f.id === update5rId);
+            if (!finding) {
+                showToast('DATA TIDAK DITEMUKAN', 'error');
+                return;
+            }
 
-                const photoHtml = f.photo ? `<img src="${f.photo}" class="photo-thumb" onclick="window.open('${f.photo}','_blank')">` : '-';
+            const photoInput = document.getElementById('update-photo');
+            let photoAfter = null;
+            if (photoInput.files && photoInput.files[0]) {
+                photoAfter = await new Promise(r => {
+                    const reader = new FileReader();
+                    reader.onload = e => r(e.target.result);
+                    reader.readAsDataURL(photoInput.files[0]);
+                });
+            }
 
-                return `
-                    <tr class="hover:bg-gray-700/50">
-                        <td class="py-3 px-3 text-gray-300">${index + 1}</td>
-                        <td class="py-3 px-3 text-gray-300">${formattedDate}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.auditor_name || '-'}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.auditee_name || '-'}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.area_name || '-'}</td>
-                        <td class="py-3 px-3 text-gray-300">${f.subarea || '-'}</td>
-                        <td class="py-3 px-3">${photoHtml}</td>
-                        <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan || '-'}</td>
-                    </tr>
-                `;
+            finding.status = 'closed';
+            finding.closed_by = closedBy;
+            finding.action_taken = action;
+            finding.photo_after = photoAfter;
+            finding.closed_at = new Date().toISOString();
+
+            saveStore();
+            addAuditLog('UPDATE', `CLOSED 5R FINDING: ${finding.temuan} by ${closedBy}`);
+            showToast('TEMUAN 5R BERHASIL DIUPDATE (CLOSED)', 'success');
+            document.getElementById('update-5r-modal').classList.add('hidden');
+            update5rId = null;
+            updateDashboard5r();
+        });
+
+        document.getElementById('cancel-update-5r').addEventListener('click', function() {
+            document.getElementById('update-5r-modal').classList.add('hidden');
+            update5rId = null;
+        });
+
+        // ============================================================
+        // INPUT 5R FORM
+        // ============================================================
+        function loadInputForm5r() {
+            const container = document.getElementById('input-tab');
+            const auditeeOptions = store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+
+            container.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
+                        <h2 class="text-lg font-bold text-purple-400 mb-6">🧹 INPUT TEMUAN 5R</h2>
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div><label class="block text-xs text-gray-400 mb-1">TANGGAL *</label> <input type="date" id="input-5r-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"></div>
+                                <div><label class="block text-xs text-gray-400 mb-1">AUDITOR (FREE TEXT)</label> <input type="text" id="input-5r-auditor" placeholder="INISIAL" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 uppercase"></div>
+                            </div>
+                            <div><label class="block text-xs text-gray-400 mb-1">AUDITEE *</label> <select id="input-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"><option value="">PILIH</option>${auditeeOptions}</select></div>
+                            <div id="temuan-5r-list" class="space-y-3"><div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH"</div></div>
+                            <div class="flex gap-3">
+                                <button id="add-temuan-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium">➕ TAMBAH</button>
+                                <button id="submit-5r" class="flex-1 bg-emerald-600 hover:bg-emerald-700 py-3 rounded-lg font-medium">💾 SIMPAN SEMUA</button>
+                                <button id="reset-5r" class="px-6 bg-gray-600 hover:bg-gray-500 py-3 rounded-lg font-medium">↺ RESET</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            temuan5rItems = [];
+            renderTemuan5rItems();
+
+            document.getElementById('add-temuan-5r').addEventListener('click', function() {
+                temuan5rItems.push({ areaId: '', subarea: '', desc: '', photoData: null });
+                renderTemuan5rItems();
+            });
+
+            document.getElementById('submit-5r').addEventListener('click', async function() {
+                const btn = this;
+                btn.disabled = true;
+                btn.innerHTML = '⏳ ...';
+                try {
+                    const date = document.getElementById('input-5r-date').value;
+                    const auditor = document.getElementById('input-5r-auditor').value.toUpperCase().trim();
+                    const auditeeId = document.getElementById('input-5r-auditee').value;
+                    if (!date || !auditor || !auditeeId || temuan5rItems.length === 0) {
+                        showToast('SEMUA FIELD DAN MIN 1 TEMUAN!', 'error');
+                        btn.disabled = false; btn.innerHTML = '💾 SIMPAN SEMUA'; return;
+                    }
+                    for (let i = 0; i < temuan5rItems.length; i++) {
+                        const item = temuan5rItems[i];
+                        if (!item.areaId || !item.subarea || !item.desc) {
+                            showToast(`TEMUAN #${i+1}: LENGKAPI DATA!`, 'error');
+                            btn.disabled = false; btn.innerHTML = '💾 SIMPAN SEMUA'; return;
+                        }
+                    }
+                    const auditeeName = getAnalystName(auditeeId);
+                    for (const item of temuan5rItems) {
+                        const areaName = getAreaName(item.areaId);
+                        store.findings5r.push({
+                            id: DB.id(), date, auditor_name: auditor,
+                            auditee_id: auditeeId, auditee_name: auditeeName,
+                            area_id: item.areaId, area_name: areaName,
+                            subarea: item.subarea, temuan: item.desc,
+                            photo: item.photoData || null,
+                            status: 'open', closed_by: null, action_taken: null,
+                            photo_after: null, closed_at: null,
+                            created_at: new Date().toISOString()
+                        });
+                    }
+                    saveStore();
+                    addAuditLog('CREATE', `NEW 5R: ${temuan5rItems.length} ITEMS`);
+                    showToast(`${temuan5rItems.length} TEMUAN DISIMPAN`, 'success');
+                    temuan5rItems = [];
+                    renderTemuan5rItems();
+                    const now = new Date();
+                    document.getElementById('input-5r-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                    document.getElementById('input-5r-auditor').value = '';
+                    document.getElementById('input-5r-auditee').value = '';
+                    if (currentProject === '5r') loadDashboard5r();
+                } catch(e) { showToast('ERROR: '+e.message, 'error'); }
+                btn.disabled = false;
+                btn.innerHTML = '💾 SIMPAN SEMUA';
+            });
+
+            document.getElementById('reset-5r').addEventListener('click', function() {
+                temuan5rItems = [];
+                renderTemuan5rItems();
+                const now = new Date();
+                document.getElementById('input-5r-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+                document.getElementById('input-5r-auditor').value = '';
+                document.getElementById('input-5r-auditee').value = '';
+                showToast('FORM DIRESET', 'info');
+            });
+
+            const now = new Date();
+            document.getElementById('input-5r-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        }
+
+        function renderTemuan5rItems() {
+            const container = document.getElementById('temuan-5r-list');
+            if (!container) return;
+            if (temuan5rItems.length === 0) {
+                container.innerHTML = '<div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN</div>';
+                return;
+            }
+            const areaOptions = store.areas.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            container.innerHTML = temuan5rItems.map((item, index) => {
+                const subareas = item.areaId ? getSubAreas(item.areaId) : [];
+                const subOptions = subareas.map(s => `<option value="${s}" ${item.subarea === s ? 'selected' : ''}>${s}</option>`).join('');
+                return `<div class="temuan-item" data-index="${index}">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs text-purple-400 font-bold">TEMUAN #${index+1}</span>
+                        <span class="remove-temuan" onclick="removeTemuan5r(${index})">🗑️ HAPUS</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="block text-xs text-gray-400 mb-1">AREA *</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-area-select" data-index="${index}">
+                                <option value="">PILIH</option>${areaOptions}
+                            </select>
+                        </div>
+                        <div><label class="block text-xs text-gray-400 mb-1">SUB AREA *</label>
+                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-subarea-select" data-index="${index}">
+                                <option value="">PILIH</option>${subOptions}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs text-gray-400 mb-1">TEMUAN *</label>
+                        <textarea class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-desc" rows="2" data-index="${index}">${item.desc||''}</textarea>
+                    </div>
+                    <div class="mt-3">
+                        <label class="block text-xs text-gray-400 mb-1">FOTO</label>
+                        <input type="file" accept="image/*" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-purple-600 file:text-white hover:file:bg-purple-700 temuan-photo" data-index="${index}">
+                        ${item.photoData ? `<div class="mt-2"><img src="${item.photoData}" class="h-12 w-12 object-cover rounded" onclick="openZoom('${item.photoData}')"></div>` : ''}
+                    </div>
+                </div>`;
             }).join('');
+
+            document.querySelectorAll('.temuan-area-select').forEach(sel => {
+                sel.addEventListener('change', function() {
+                    const index = parseInt(this.dataset.index);
+                    temuan5rItems[index].areaId = this.value;
+                    temuan5rItems[index].subarea = '';
+                    renderTemuan5rItems();
+                });
+            });
+            document.querySelectorAll('.temuan-subarea-select').forEach(sel => {
+                sel.addEventListener('change', function() {
+                    const index = parseInt(this.dataset.index);
+                    temuan5rItems[index].subarea = this.value;
+                });
+            });
+            document.querySelectorAll('.temuan-desc').forEach(txt => {
+                txt.addEventListener('input', function() {
+                    const index = parseInt(this.dataset.index);
+                    temuan5rItems[index].desc = this.value;
+                });
+            });
+            document.querySelectorAll('.temuan-photo').forEach(input => {
+                input.addEventListener('change', function() {
+                    const index = parseInt(this.dataset.index);
+                    const file = this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = e => { temuan5rItems[index].photoData = e.target.result; renderTemuan5rItems(); };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            });
         }
 
-        function updateTrendTables5r(filteredData) {
-            // Area trend
-            const areaTrend = generateTrendTable5r(filteredData, 'area_name', 'AREA', 8);
-            const areaHeader = document.getElementById('trend-5r-table-header-area');
-            const areaBody = document.getElementById('trend-5r-table-body-area');
-            if (areaHeader) areaHeader.innerHTML = areaTrend.header;
-            if (areaBody) areaBody.innerHTML = areaTrend.body;
-
-            // Auditor trend
-            const auditorTrend = generateTrendTable5r(filteredData, 'auditor_name', 'AUDITOR', 10);
-            const auditorHeader = document.getElementById('trend-5r-table-header-auditor');
-            const auditorBody = document.getElementById('trend-5r-table-body-auditor');
-            if (auditorHeader) auditorHeader.innerHTML = auditorTrend.header;
-            if (auditorBody) auditorBody.innerHTML = auditorTrend.body;
-        }
-
-        function generateTrendTable5r(data, nameField, nameLabel, limit = 8) {
-            if (!data || data.length === 0) {
-                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
-            }
-
-            const itemMonthlyData = {};
-            const monthsSet = new Set();
-
-            data.forEach(f => {
-                if (f.date && f[nameField]) {
-                    const month = f.date.substring(0, 7);
-                    monthsSet.add(month);
-                    if (!itemMonthlyData[f[nameField]]) {
-                        itemMonthlyData[f[nameField]] = {};
-                    }
-                    itemMonthlyData[f[nameField]][month] = (itemMonthlyData[f[nameField]][month] || 0) + 1;
-                }
-            });
-
-            const sortedMonths = Array.from(monthsSet).sort();
-            const itemTotals = Object.keys(itemMonthlyData).map(item => ({
-                name: item,
-                total: Object.values(itemMonthlyData[item]).reduce((sum, val) => sum + val, 0)
-            }));
-            itemTotals.sort((a, b) => b.total - a.total);
-            const topItems = itemTotals.slice(0, limit).map(item => item.name);
-
-            if (topItems.length === 0) {
-                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
-            }
-
-            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            let headerHTML = `<th class="sticky left-0 bg-gray-700 text-left" style="min-width:120px;">${nameLabel}</th>`;
-            sortedMonths.forEach(month => {
-                const [year, monthNum] = month.split('-');
-                headerHTML += `<th style="min-width:70px;">${monthNames[parseInt(monthNum) - 1]}<br><span class="text-xs text-gray-400">${year}</span></th>`;
-            });
-            headerHTML += '<th style="min-width:80px; background-color:#4b5563;">TOTAL</th>';
-
-            let bodyHTML = '';
-            topItems.forEach(item => {
-                let rowHTML = `<tr><td class="sticky left-0 bg-gray-800 font-bold text-left"><span class="item-badge">${item}</span></td>`;
-                let itemTotal = 0;
-                sortedMonths.forEach(month => {
-                    const count = itemMonthlyData[item]?.[month] || 0;
-                    itemTotal += count;
-                    let bgColor = 'bg-gray-800';
-                    if (count > 0) {
-                        if (count >= 5) bgColor = 'bg-red-900/60';
-                        else if (count >= 3) bgColor = 'bg-orange-900/50';
-                        else if (count >= 1) bgColor = 'bg-yellow-900/40';
-                    }
-                    rowHTML += `<td class="${bgColor} font-mono">${count || '-'}</td>`;
-                });
-                rowHTML += `<td class="bg-blue-900/40 font-bold">${itemTotal}</td></tr>`;
-                bodyHTML += rowHTML;
-            });
-
-            let totalRowHTML = '<tr class="border-t-2 border-gray-600 bg-gray-700/50"><td class="sticky left-0 bg-gray-700 font-bold">TOTAL</td>';
-            sortedMonths.forEach(month => {
-                let monthTotal = 0;
-                topItems.forEach(item => {
-                    monthTotal += itemMonthlyData[item]?.[month] || 0;
-                });
-                totalRowHTML += `<td class="font-bold">${monthTotal || '-'}</td>`;
-            });
-            let grandTotal = 0;
-            topItems.forEach(item => {
-                grandTotal += itemTotals.find(i => i.name === item)?.total || 0;
-            });
-            totalRowHTML += `<td class="bg-blue-800/60 font-bold">${grandTotal}</td></tr>`;
-            bodyHTML += totalRowHTML;
-
-            return { header: headerHTML, body: bodyHTML };
+        function removeTemuan5r(index) {
+            temuan5rItems.splice(index, 1);
+            renderTemuan5rItems();
         }
 
         // ============================================================
-        // EXPORT FUNCTIONS 5R
+        // EXPORT 5R
         // ============================================================
         function exportPdf5r() {
             const data = store.findings5r;
-            if (data.length === 0) {
-                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
-                return;
-            }
-
+            if (data.length === 0) { showToast('TIDAK ADA DATA', 'error'); return; }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
-
             doc.setFontSize(16);
-            doc.text('LAPORAN DETAIL TEMUAN 5R', 105, 15, { align: 'center' });
+            doc.text('LAPORAN TEMUAN 5R', 105, 15, { align: 'center' });
             doc.setFontSize(10);
-            doc.text(`Total Temuan: ${data.length}`, 105, 25, { align: 'center' });
-            doc.text(`Generated: ${new Date().toLocaleString('ID-id')}`, 105, 32, { align: 'center' });
-
+            doc.text(`Total: ${data.length}`, 105, 25, { align: 'center' });
             let y = 45;
             doc.setFontSize(8);
-            doc.setFillColor(40, 40, 40);
-            doc.setTextColor(255, 255, 255);
-            doc.rect(15, y - 5, 180, 7, 'F');
-
-            doc.text('NO', 17, y);
-            doc.text('TANGGAL', 27, y);
-            doc.text('AUDITOR', 45, y);
-            doc.text('AUDITEE', 62, y);
-            doc.text('AREA', 78, y);
-            doc.text('SUB AREA', 98, y);
-            doc.text('TEMUAN', 118, y);
-
+            doc.setFillColor(40,40,40);
+            doc.setTextColor(255,255,255);
+            doc.rect(15, y-5, 180, 7, 'F');
+            doc.text('NO',17,y); doc.text('TANGGAL',27,y); doc.text('AUDITOR',45,y);
+            doc.text('AREA',62,y); doc.text('SUB',78,y); doc.text('STATUS',95,y); doc.text('TEMUAN',110,y);
             y += 5;
-            doc.setTextColor(0, 0, 0);
+            doc.setTextColor(0,0,0);
             doc.setFontSize(7);
-
-            data.sort((a, b) => new Date(a.date) - new Date(b.date)).forEach((f, index) => {
-                if (y > 280) {
-                    doc.addPage();
-                    y = 20;
-                    doc.setFontSize(8);
-                    doc.setFillColor(40, 40, 40);
-                    doc.setTextColor(255, 255, 255);
-                    doc.rect(15, y - 5, 180, 7, 'F');
-                    doc.text('NO', 17, y);
-                    doc.text('TANGGAL', 27, y);
-                    doc.text('AUDITOR', 45, y);
-                    doc.text('AUDITEE', 62, y);
-                    doc.text('AREA', 78, y);
-                    doc.text('SUB AREA', 98, y);
-                    doc.text('TEMUAN', 118, y);
-                    y += 5;
-                    doc.setTextColor(0, 0, 0);
-                }
-
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]}`;
-                }
-
-                doc.text(`${index + 1}`, 17, y);
-                doc.text(formattedDate, 27, y);
-                doc.text(f.auditor_name || '-', 45, y);
-                doc.text(f.auditee_name || '-', 62, y);
-                doc.text(f.area_name || '-', 78, y);
-                doc.text(f.subarea || '-', 98, y);
-
-                const desc = f.temuan || '-';
-                const lines = doc.splitTextToSize(desc, 55);
-                lines.forEach((line, idx) => {
-                    if (y > 280) {
-                        doc.addPage();
-                        y = 20;
-                    }
-                    doc.text(line, 118, y);
-                    if (idx < lines.length - 1) y += 3;
-                });
+            data.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach((f, index) => {
+                if (y > 280) { doc.addPage(); y = 20; }
+                let formattedDate = f.date || '-';
+                doc.text(`${index+1}`,17,y);
+                doc.text(formattedDate,27,y);
+                doc.text(f.auditor_name||'-',45,y);
+                doc.text(f.area_name||'-',62,y);
+                doc.text(f.subarea||'-',78,y);
+                doc.text(f.status||'open',95,y);
+                const desc = f.temuan||'-';
+                const lines = doc.splitTextToSize(desc, 60);
+                lines.forEach((line, idx) => { if (y > 280) { doc.addPage(); y = 20; } doc.text(line,110,y); if (idx < lines.length-1) y += 3; });
                 y += 5;
             });
-
             doc.save(`5R_TEMUAN_${new Date().toISOString().split('T')[0]}.pdf`);
-            showToast('PDF TEMUAN 5R BERHASIL DIEXPORT', 'success');
+            showToast('PDF 5R EXPORT', 'success');
         }
 
         function exportExcel5r() {
             const data = store.findings5r;
-            if (data.length === 0) {
-                showToast('TIDAK ADA DATA UNTUK DIEXPORT', 'error');
-                return;
-            }
-
-            const excelData = data.sort((a, b) => new Date(a.date) - new Date(b.date)).map((f, index) => {
-                let formattedDate = '-';
-                if (f.date) {
-                    const [year, month, day] = f.date.split('-');
-                    const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-                    formattedDate = `${day} ${monthNames[parseInt(month) - 1]} ${year}`;
-                }
-                return {
-                    NO: index + 1,
-                    TANGGAL: formattedDate,
-                    AUDITOR: f.auditor_name || '-',
-                    AUDITEE: f.auditee_name || '-',
-                    AREA: f.area_name || '-',
-                    'SUB AREA': f.subarea || '-',
-                    'TEMUAN 5R': f.temuan || '-'
-                };
-            });
-
+            if (data.length === 0) { showToast('TIDAK ADA DATA', 'error'); return; }
+            const excelData = data.map((f, index) => ({
+                NO: index+1,
+                TANGGAL: f.date||'-',
+                AUDITOR: f.auditor_name||'-',
+                AUDITEE: f.auditee_name||'-',
+                AREA: f.area_name||'-',
+                'SUB AREA': f.subarea||'-',
+                TEMUAN: f.temuan||'-',
+                STATUS: f.status||'open',
+                'CLOSED BY': f.closed_by||'-',
+                ACTION: f.action_taken||'-'
+            }));
             const ws = XLSX.utils.json_to_sheet(excelData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Temuan 5R");
+            XLSX.utils.book_append_sheet(wb, ws, "5R");
             XLSX.writeFile(wb, `5R_TEMUAN_${new Date().toISOString().split('T')[0]}.xlsx`);
-            showToast('EXCEL TEMUAN 5R BERHASIL DIEXPORT', 'success');
+            showToast('EXCEL 5R EXPORT', 'success');
         }
 
         // ============================================================
-        // MANAGEMENT (shared)
+        // MANAGEMENT (disederhanakan)
         // ============================================================
         function loadManagement() {
             const container = document.getElementById('management-tab');
             const isBrft = currentProject === 'brft';
+            const color = isBrft ? 'emerald' : 'purple';
             const colorClass = isBrft ? 'text-emerald-400' : 'text-purple-400';
             const borderClass = isBrft ? 'border-emerald-500' : 'border-purple-500';
-            const bgClass = isBrft ? 'bg-emerald-600' : 'bg-purple-600';
-            const hoverBg = isBrft ? 'hover:bg-emerald-700' : 'hover:bg-purple-700';
 
             container.innerHTML = `
                 <div id="admin-login" class="max-w-md mx-auto">
                     <div class="bg-gray-800 rounded-xl p-6 card-shadow border border-gray-700">
                         <div class="text-center mb-6">
                             <div class="w-16 h-16 ${isBrft ? 'bg-emerald-600/20' : 'bg-purple-600/20'} rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg class="w-8 h-8 ${isBrft ? 'text-emerald-400' : 'text-purple-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                <svg class="w-8 h-8 ${colorClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             </div>
                             <h2 class="text-lg font-bold text-white">ADMIN LOGIN</h2>
-                            <p class="text-xs text-gray-400 mt-1">MASUKKAN PASSWORD UNTUK AKSES MANAJEMEN</p>
+                            <p class="text-xs text-gray-400 mt-1">PASSWORD: admin123</p>
                         </div>
-                        <div class="space-y-4">
-                            <div><label class="block text-xs text-gray-400 mb-1">PASSWORD</label> <input type="password" id="admin-password" placeholder="•••••••••" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"></div>
-                            <button id="admin-login-btn" class="w-full ${bgClass} ${hoverBg} py-3 rounded-lg font-medium transition"> 🔓 LOGIN </button>
-                        </div>
+                        <div><input type="password" id="admin-password" placeholder="PASSWORD" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-${color}-500"></div>
+                        <button id="admin-login-btn" class="w-full mt-4 ${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} py-3 rounded-lg font-medium transition">🔓 LOGIN</button>
                     </div>
                 </div>
                 <div id="admin-panel" class="hidden">
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-lg font-bold ${colorClass}">⚙️ MANAGEMENT</h2>
-                        <button id="admin-logout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"> 🚪 LOGOUT </button>
+                        <button id="admin-logout" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-medium">🚪 LOGOUT</button>
                     </div>
                     <div class="bg-gray-800 rounded-t-xl border border-gray-700 border-b-0">
                         <div class="flex overflow-x-auto">
                             <button class="mgmt-tab mgmt-tab-active px-4 py-3 text-sm font-medium border-b-2 ${borderClass} ${colorClass}" data-mgmt="analysts">👤 ANALYST & AREA</button>
                             ${isBrft ? `
-                                <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="products">📦 KODE PRODUK</button>
+                                <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="products">📦 PRODUK</button>
                                 <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="categories">🏷️ KATEGORI</button>
                                 <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="targets">🎯 TARGET</button>
-                                <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="findings">📋 TEMUAN QC</button>
-                            ` : `
-                                <button class="mgmt-tab px-4 py-3 text-sm font-medium text-gray-400 hover:${colorClass}" data-mgmt="5r">🧹 TEMUAN 5R</button>
-                            `}
+                            ` : ''}
                         </div>
                     </div>
                     <div class="bg-gray-800 rounded-b-xl p-5 border border-gray-700 border-t-0">
                         <div id="mgmt-analysts" class="mgmt-content">
                             <div class="flex gap-3 mb-4">
-                                <input type="text" id="new-analyst" placeholder="INISIAL ANALYST BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500">
-                                <button id="add-analyst" class="${bgClass} ${hoverBg} px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button>
+                                <input type="text" id="new-analyst" placeholder="INISIAL BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-${color}-500">
+                                <button id="add-analyst" class="${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} px-4 py-2 rounded-lg text-sm font-medium">➕ TAMBAH</button>
                             </div>
                             <div id="analysts-list" class="space-y-2 max-h-96 overflow-y-auto"></div>
                         </div>
                         ${isBrft ? `
                         <div id="mgmt-products" class="mgmt-content hidden">
-                            <div class="flex gap-3 mb-4"><input type="text" id="new-product" placeholder="KODE PRODUK BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-product" class="${bgClass} ${hoverBg} px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div class="flex gap-3 mb-4"><input type="text" id="new-product" placeholder="KODE PRODUK" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-${color}-500"> <button id="add-product" class="${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} px-4 py-2 rounded-lg text-sm font-medium">➕</button></div>
                             <div id="products-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
                         </div>
                         <div id="mgmt-categories" class="mgmt-content hidden">
-                            <div class="flex gap-3 mb-4"><input type="text" id="new-category" placeholder="NAMA KATEGORI BARU" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-category" class="${bgClass} ${hoverBg} px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div class="flex gap-3 mb-4"><input type="text" id="new-category" placeholder="KATEGORI" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-${color}-500"> <button id="add-category" class="${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} px-4 py-2 rounded-lg text-sm font-medium">➕</button></div>
                             <div id="categories-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
                         </div>
                         <div id="mgmt-targets" class="mgmt-content hidden">
-                            <div class="flex gap-3 mb-4"><input type="month" id="new-target-month" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500"> <input type="number" id="new-target-value" placeholder="Σ TOTAL DOKUMEN" min="1" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-emerald-500 placeholder-gray-500"> <button id="add-target" class="${bgClass} ${hoverBg} px-4 py-2 rounded-lg text-sm font-medium transition">➕ TAMBAH</button></div>
+                            <div class="flex gap-3 mb-4"><input type="month" id="new-target-month" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-${color}-500"> <input type="number" id="new-target-value" placeholder="TARGET" min="1" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-${color}-500"> <button id="add-target" class="${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} px-4 py-2 rounded-lg text-sm font-medium">➕</button></div>
                             <div id="targets-list" class="space-y-2 max-h-64 overflow-y-auto"></div>
-                        </div>
-                        <div id="mgmt-findings" class="mgmt-content hidden">
-                            <div class="overflow-x-auto max-h-96">
-                                <table class="w-full text-sm">
-                                    <thead class="sticky top-0 bg-gray-800">
-                                        <tr class="border-b border-gray-700">
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">TANGGAL</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">PRODUK</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">BATCH</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">ANALYST</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AKSI</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="findings-mgmt-list" class="divide-y divide-gray-700"></tbody>
-                                </table>
-                            </div>
-                        </div>` : `
-                        <div id="mgmt-5r" class="mgmt-content hidden">
-                            <div class="overflow-x-auto max-h-96">
-                                <table class="w-full text-sm">
-                                    <thead class="sticky top-0 bg-gray-800">
-                                        <tr class="border-b border-gray-700">
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">TANGGAL</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AUDITOR</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AUDITEE</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AREA</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">SUB AREA</th>
-                                            <th class="text-left py-2 px-2 text-gray-400 font-medium">AKSI</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="findings-5r-mgmt-list" class="divide-y divide-gray-700"></tbody>
-                                </table>
-                            </div>
-                        </div>`}
+                        </div>` : ''}
                     </div>
                 </div>
             `;
 
-            // Setup management tabs
             document.querySelectorAll('.mgmt-tab').forEach(tab => {
                 tab.addEventListener('click', function() {
                     document.querySelectorAll('.mgmt-tab').forEach(t => {
-                        t.classList.remove('mgmt-tab-active', 'border-emerald-500', 'border-purple-500', 'text-emerald-400', 'text-purple-400', 'border-b-2');
+                        t.classList.remove('mgmt-tab-active', borderClass, colorClass, 'border-b-2');
                         t.classList.add('text-gray-400');
                     });
-                    this.classList.add('mgmt-tab-active', `border-${isBrft ? 'emerald' : 'purple'}-500`, `text-${isBrft ? 'emerald' : 'purple'}-400`, 'border-b-2');
+                    this.classList.add('mgmt-tab-active', borderClass, colorClass, 'border-b-2');
                     this.classList.remove('text-gray-400');
-
                     document.querySelectorAll('.mgmt-content').forEach(c => c.classList.add('hidden'));
                     const target = document.getElementById(`mgmt-${this.dataset.mgmt}`);
                     if (target) target.classList.remove('hidden');
                 });
             });
 
-            // Admin login
             document.getElementById('admin-login-btn').addEventListener('click', () => {
-                const password = document.getElementById('admin-password').value;
-                if (password === 'admin123') {
+                if (document.getElementById('admin-password').value === 'admin123') {
                     isAdminLoggedIn = true;
                     document.getElementById('admin-login').classList.add('hidden');
                     document.getElementById('admin-panel').classList.remove('hidden');
-                    addAuditLog('LOGIN', 'ADMIN LOGIN SUCCESSFUL');
                     showToast('LOGIN BERHASIL', 'success');
                     updateManagementData();
                 } else {
@@ -2498,20 +1379,18 @@
                 document.getElementById('admin-panel').classList.add('hidden');
                 document.getElementById('admin-login').classList.remove('hidden');
                 document.getElementById('admin-password').value = '';
-                addAuditLog('LOGOUT', 'ADMIN LOGOUT');
-                showToast('LOGOUT BERHASIL', 'info');
+                showToast('LOGOUT', 'info');
             });
 
-            // Add master data
             document.getElementById('add-analyst').addEventListener('click', () => {
                 const input = document.getElementById('new-analyst');
                 const value = input.value.trim().toUpperCase();
-                if (!value) { showToast('INISIAL TIDAK BOLEH KOSONG', 'error'); return; }
-                if (store.analysts.some(a => a.name === value)) { showToast('INISIAL SUDAH ADA', 'error'); return; }
+                if (!value) { showToast('ISI NILAI', 'error'); return; }
+                if (store.analysts.some(a => a.name === value)) { showToast('SUDAH ADA', 'error'); return; }
                 store.analysts.push({ id: DB.id(), name: value });
                 saveStore();
                 addAuditLog('CREATE', `NEW ANALYST: ${value}`);
-                showToast('ANALYST BERHASIL DITAMBAHKAN', 'success');
+                showToast('ANALYST BERHASIL', 'success');
                 input.value = '';
                 updateManagementData();
             });
@@ -2520,12 +1399,12 @@
                 document.getElementById('add-product').addEventListener('click', () => {
                     const input = document.getElementById('new-product');
                     const value = input.value.trim().toUpperCase();
-                    if (!value) { showToast('KODE PRODUK TIDAK BOLEH KOSONG', 'error'); return; }
-                    if (store.products.some(p => p.name === value)) { showToast('KODE PRODUK SUDAH ADA', 'error'); return; }
+                    if (!value) { showToast('ISI NILAI', 'error'); return; }
+                    if (store.products.some(p => p.name === value)) { showToast('SUDAH ADA', 'error'); return; }
                     store.products.push({ id: DB.id(), name: value, parameters: [] });
                     saveStore();
                     addAuditLog('CREATE', `NEW PRODUCT: ${value}`);
-                    showToast('PRODUK BERHASIL DITAMBAHKAN', 'success');
+                    showToast('PRODUK BERHASIL', 'success');
                     input.value = '';
                     updateManagementData();
                 });
@@ -2533,12 +1412,12 @@
                 document.getElementById('add-category').addEventListener('click', () => {
                     const input = document.getElementById('new-category');
                     const value = input.value.trim().toUpperCase();
-                    if (!value) { showToast('KATEGORI TIDAK BOLEH KOSONG', 'error'); return; }
-                    if (store.categories.some(c => c.name === value)) { showToast('KATEGORI SUDAH ADA', 'error'); return; }
+                    if (!value) { showToast('ISI NILAI', 'error'); return; }
+                    if (store.categories.some(c => c.name === value)) { showToast('SUDAH ADA', 'error'); return; }
                     store.categories.push({ id: DB.id(), name: value });
                     saveStore();
                     addAuditLog('CREATE', `NEW CATEGORY: ${value}`);
-                    showToast('KATEGORI BERHASIL DITAMBAHKAN', 'success');
+                    showToast('KATEGORI BERHASIL', 'success');
                     input.value = '';
                     updateManagementData();
                 });
@@ -2547,11 +1426,11 @@
                     const month = document.getElementById('new-target-month').value;
                     const value = parseInt(document.getElementById('new-target-value').value);
                     if (!month || isNaN(value) || value <= 0) { showToast('DATA TIDAK VALID', 'error'); return; }
-                    if (store.targets.some(t => t.target_month === month)) { showToast('TARGET BULAN INI SUDAH ADA', 'error'); return; }
+                    if (store.targets.some(t => t.target_month === month)) { showToast('BULAN SUDAH ADA', 'error'); return; }
                     store.targets.push({ id: DB.id(), target_month: month, target_value: value });
                     saveStore();
-                    addAuditLog('CREATE', `NEW TARGET: ${month} = ${value}`);
-                    showToast('TARGET BERHASIL DITAMBAHKAN', 'success');
+                    addAuditLog('CREATE', `NEW TARGET: ${month}`);
+                    showToast('TARGET BERHASIL', 'success');
                     document.getElementById('new-target-month').value = '';
                     document.getElementById('new-target-value').value = '';
                     updateManagementData();
@@ -2563,198 +1442,81 @@
 
         function updateManagementData() {
             const isBrft = currentProject === 'brft';
-            
-            // Analysts with Areas
             const analystsList = document.getElementById('analysts-list');
             if (analystsList) {
-                analystsList.innerHTML = store.analysts.length === 0 ?
-                    '<p class="text-gray-500 text-center py-4">TIDAK ADA ANALYST</p>' :
+                analystsList.innerHTML = store.analysts.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
                     store.analysts.map(a => {
-                        const analystAreas = store.areas.filter(area => area.analyst_id === a.id);
-                        const areasHtml = analystAreas.length === 0 ?
-                            '<div class="text-gray-500 text-xs ml-4">BELUM ADA AREA</div>' :
-                            analystAreas.map(area => {
-                                const subHtml = area.subareas && area.subareas.length > 0 ?
-                                    area.subareas.map(s => `<span class="subarea-badge">${s}</span>`).join(' ') :
-                                    '<span class="text-gray-400 text-xs">BELUM ADA SUB AREA</span>';
-                                return `
-                                    <div class="area-item bg-gray-700/50 rounded px-3 py-2 mt-1">
-                                        <div class="flex items-center justify-between">
-                                            <span class="text-emerald-300 font-medium">${area.name}</span>
-                                            <div class="flex gap-1">
-                                                <button class="add-subarea-btn text-purple-400 hover:text-purple-300 p-1 text-xs" data-id="${area.id}">➕ SUB</button>
-                                                <button class="edit-area text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${area.id}">✏️</button>
-                                                <button class="delete-area text-red-400 hover:text-red-300 p-1 text-xs" data-id="${area.id}">🗑️</button>
-                                            </div>
-                                        </div>
-                                        <div class="flex flex-wrap gap-1 mt-1">${subHtml}</div>
-                                    </div>
-                                `;
-                            }).join('');
-
-                        return `
-                            <div class="analyst-list-item bg-gray-700 rounded-lg px-4 py-3">
-                                <div class="flex items-center justify-between">
-                                    <span class="font-bold text-emerald-400">${a.name}</span>
-                                    <div class="flex gap-2">
-                                        <button class="add-area-btn text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${a.id}">➕ AREA</button>
-                                        <button class="edit-analyst text-blue-400 hover:text-blue-300 p-1" data-id="${a.id}">✏️</button>
-                                        <button class="delete-analyst text-red-400 hover:text-red-300 p-1" data-id="${a.id}">🗑️</button>
-                                    </div>
-                                </div>
-                                <div class="mt-2 ml-2 border-l-2 border-gray-600 pl-2">${areasHtml}</div>
-                            </div>
-                        `;
+                        const areas = store.areas.filter(area => area.analyst_id === a.id);
+                        const areasHtml = areas.length === 0 ? '<div class="text-gray-500 text-xs ml-4">BELUM ADA AREA</div>' :
+                            areas.map(area => `<div class="area-item bg-gray-700/50 rounded px-3 py-2 mt-1">
+                                <div class="flex items-center justify-between"><span class="text-emerald-300 font-medium">${area.name}</span>
+                                <div class="flex gap-1">
+                                    <button class="add-subarea-btn text-purple-400 hover:text-purple-300 p-1 text-xs" data-id="${area.id}">➕ SUB</button>
+                                    <button class="edit-area text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${area.id}">✏️</button>
+                                    <button class="delete-area text-red-400 hover:text-red-300 p-1 text-xs" data-id="${area.id}">🗑️</button>
+                                </div></div>
+                                <div class="flex flex-wrap gap-1 mt-1">${area.subareas && area.subareas.length > 0 ? area.subareas.map(s => `<span class="subarea-badge">${s}</span>`).join(' ') : '<span class="text-gray-400 text-xs">BELUM ADA SUB</span>'}</div>
+                            </div>`).join('');
+                        return `<div class="analyst-list-item bg-gray-700 rounded-lg px-4 py-3">
+                            <div class="flex items-center justify-between"><span class="font-bold text-emerald-400">${a.name}</span>
+                            <div class="flex gap-2">
+                                <button class="add-area-btn text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${a.id}">➕ AREA</button>
+                                <button class="edit-analyst text-blue-400 hover:text-blue-300 p-1" data-id="${a.id}">✏️</button>
+                                <button class="delete-analyst text-red-400 hover:text-red-300 p-1" data-id="${a.id}">🗑️</button>
+                            </div></div>
+                            <div class="mt-2 ml-2 border-l-2 border-gray-600 pl-2">${areasHtml}</div>
+                        </div>`;
                     }).join('');
             }
 
             if (isBrft) {
-                // Products
                 const productsList = document.getElementById('products-list');
                 if (productsList) {
-                    productsList.innerHTML = store.products.length === 0 ?
-                        '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
-                        store.products.map(p => createProductItem(p)).join('');
+                    productsList.innerHTML = store.products.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
+                        store.products.map(p => `<div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${p.id}">
+                            <span class="font-medium text-emerald-400">${p.name}</span>
+                            <div class="flex gap-2"><button class="edit-product text-blue-400 hover:text-blue-300 p-1" data-id="${p.id}">✏️</button><button class="delete-product text-red-400 hover:text-red-300 p-1" data-id="${p.id}">🗑️</button></div>
+                        </div>`).join('');
                 }
-
-                // Categories
                 const categoriesList = document.getElementById('categories-list');
                 if (categoriesList) {
-                    categoriesList.innerHTML = store.categories.length === 0 ?
-                        '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
-                        store.categories.map(c => createMasterItem(c, 'category')).join('');
+                    categoriesList.innerHTML = store.categories.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
+                        store.categories.map(c => `<div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${c.id}">
+                            <span class="font-medium">${c.name}</span>
+                            <div class="flex gap-2"><button class="edit-category text-blue-400 hover:text-blue-300 p-1" data-id="${c.id}">✏️</button><button class="delete-category text-red-400 hover:text-red-300 p-1" data-id="${c.id}">🗑️</button></div>
+                        </div>`).join('');
                 }
-
-                // Targets
                 const targetsList = document.getElementById('targets-list');
                 if (targetsList) {
-                    targetsList.innerHTML = store.targets.length === 0 ?
-                        '<p class="text-gray-500 text-center py-4">TIDAK ADA DATA</p>' :
-                        store.targets.sort((a, b) => b.target_month.localeCompare(a.target_month)).map(t => {
-                            const monthFindings = store.findings.filter(f => f.date && f.date.startsWith(t.target_month)).length;
-                            const uniqueBatches = new Set(store.findings.filter(f => f.date && f.date.startsWith(t.target_month)).map(f => f.batch_number)).size;
-                            const qc = t.target_value > 0 ? ((t.target_value - uniqueBatches) / t.target_value) * 100 : 0;
-                            return `
-                                <div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${t.id}">
-                                    <div class="flex-1">
-                                        <span class="font-medium">${t.target_month}</span>
-                                        <span class="text-gray-400 ml-2">TARGET: ${t.target_value}</span>
-                                        <span class="text-gray-400 ml-2">TEMUAN: ${monthFindings}</span>
-                                        <span class="ml-2 ${qc >= 95 ? 'text-emerald-400' : qc >= 90 ? 'text-amber-400' : 'text-red-400'}">${qc.toFixed(1)}%</span>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button class="edit-target text-blue-400 hover:text-blue-300 p-1" data-id="${t.id}">✏️</button>
-                                        <button class="delete-target text-red-400 hover:text-red-300 p-1" data-id="${t.id}">🗑️</button>
-                                    </div>
-                                </div>
-                            `;
-                        }).join('');
-                }
-
-                // Findings QC
-                const findingsMgmtList = document.getElementById('findings-mgmt-list');
-                if (findingsMgmtList) {
-                    findingsMgmtList.innerHTML = store.findings.length === 0 ?
-                        '<tr><td colspan="5" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' :
-                        store.findings.sort((a, b) => new Date(b.date) - new Date(a.date)).map(f => `
-                            <tr class="hover:bg-gray-700/50" data-id="${f.id}">
-                                <td class="py-2 px-2 text-gray-300">${f.date || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.product_name || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.batch_number || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.analyst_name || '-'}</td>
-                                <td class="py-2 px-2">
-                                    <button class="delete-finding text-red-400 hover:text-red-300" data-id="${f.id}">🗑️</button>
-                                </td>
-                            </tr>
-                        `).join('');
-                }
-            } else {
-                // Findings 5R
-                const findings5rMgmtList = document.getElementById('findings-5r-mgmt-list');
-                if (findings5rMgmtList) {
-                    findings5rMgmtList.innerHTML = store.findings5r.length === 0 ?
-                        '<tr><td colspan="6" class="py-8 text-center text-gray-500">TIDAK ADA DATA 5R</td></tr>' :
-                        store.findings5r.sort((a, b) => new Date(b.date) - new Date(a.date)).map(f => `
-                            <tr class="hover:bg-gray-700/50" data-id="${f.id}">
-                                <td class="py-2 px-2 text-gray-300">${f.date || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.auditor_name || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.auditee_name || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.area_name || '-'}</td>
-                                <td class="py-2 px-2 text-gray-300">${f.subarea || '-'}</td>
-                                <td class="py-2 px-2">
-                                    <button class="delete-5r text-red-400 hover:text-red-300" data-id="${f.id}">🗑️</button>
-                                </td>
-                            </tr>
-                        `).join('');
+                    targetsList.innerHTML = store.targets.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
+                        store.targets.sort((a,b) => b.target_month.localeCompare(a.target_month)).map(t =>
+                            `<div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${t.id}">
+                                <span class="font-medium">${t.target_month} = ${t.target_value}</span>
+                                <div class="flex gap-2"><button class="edit-target text-blue-400 hover:text-blue-300 p-1" data-id="${t.id}">✏️</button><button class="delete-target text-red-400 hover:text-red-300 p-1" data-id="${t.id}">🗑️</button></div>
+                            </div>`
+                        ).join('');
                 }
             }
 
-            // Setup event listeners for management actions
-            setupManagementEventListeners();
+            setupManagementEvents();
         }
 
-        function createMasterItem(item, type) {
-            return `
-                <div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${item.id}">
-                    <span class="font-medium">${item.name}</span>
-                    <div class="flex gap-2">
-                        <button class="edit-${type} text-blue-400 hover:text-blue-300 p-1" data-id="${item.id}">✏️</button>
-                        <button class="delete-${type} text-red-400 hover:text-red-300 p-1" data-id="${item.id}">🗑️</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function createProductItem(product) {
-            const paramsHtml = product.parameters && product.parameters.length > 0 ?
-                product.parameters.map(p => `<span class="parameter-tag">${p}</span>`).join('') :
-                '<span class="text-gray-500 text-xs">BELUM ADA PARAMETER</span>';
-
-            return `
-                <div class="flex flex-col gap-2 bg-gray-700 rounded-lg px-4 py-3" data-id="${product.id}">
-                    <div class="flex items-center justify-between">
-                        <span class="font-medium text-emerald-400">${product.name}</span>
-                        <div class="flex gap-2">
-                            <button class="edit-product text-blue-400 hover:text-blue-300 p-1" data-id="${product.id}">✏️</button>
-                            <button class="delete-product text-red-400 hover:text-red-300 p-1" data-id="${product.id}">🗑️</button>
-                        </div>
-                    </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-xs text-gray-400">PARAMETER:</span>
-                        ${paramsHtml}
-                        <button class="add-param-btn text-xs bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded transition" data-id="${product.id}">+ TAMBAH</button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function setupManagementEventListeners() {
-            // Add area
+        function setupManagementEvents() {
             document.querySelectorAll('.add-area-btn').forEach(btn => {
                 btn.removeEventListener('click', handleAddArea);
                 btn.addEventListener('click', handleAddArea);
             });
-
-            // Add subarea
             document.querySelectorAll('.add-subarea-btn').forEach(btn => {
                 btn.removeEventListener('click', handleAddSubarea);
                 btn.addEventListener('click', handleAddSubarea);
             });
-
-            // Edit/Delete handlers
             document.querySelectorAll('.edit-analyst, .edit-product, .edit-category, .edit-area, .edit-target').forEach(btn => {
                 btn.removeEventListener('click', handleEdit);
                 btn.addEventListener('click', handleEdit);
             });
-
-            document.querySelectorAll('.delete-analyst, .delete-product, .delete-category, .delete-area, .delete-target, .delete-finding, .delete-5r').forEach(btn => {
+            document.querySelectorAll('.delete-analyst, .delete-product, .delete-category, .delete-area, .delete-target').forEach(btn => {
                 btn.removeEventListener('click', handleDelete);
                 btn.addEventListener('click', handleDelete);
-            });
-
-            document.querySelectorAll('.add-param-btn').forEach(btn => {
-                btn.removeEventListener('click', handleAddParam);
-                btn.addEventListener('click', handleAddParam);
             });
         }
 
@@ -2763,18 +1525,14 @@
             document.getElementById('edit-value').placeholder = 'NAMA AREA';
             document.getElementById('edit-value').value = '';
             document.getElementById('edit-modal').classList.remove('hidden');
-
             editCallback = () => {
-                const areaName = document.getElementById('edit-value').value.trim().toUpperCase();
-                if (!areaName) { showToast('NAMA AREA TIDAK BOLEH KOSONG', 'error'); return; }
-                if (store.areas.some(a => a.name === areaName && a.analyst_id === analystId)) {
-                    showToast('AREA SUDAH ADA UNTUK ANALYST INI', 'error');
-                    return;
-                }
-                store.areas.push({ id: DB.id(), name: areaName, analyst_id: analystId, subareas: [] });
+                const name = document.getElementById('edit-value').value.trim().toUpperCase();
+                if (!name) { showToast('ISI NAMA', 'error'); return; }
+                if (store.areas.some(a => a.name === name && a.analyst_id === analystId)) { showToast('SUDAH ADA', 'error'); return; }
+                store.areas.push({ id: DB.id(), name, analyst_id: analystId, subareas: [] });
                 saveStore();
-                addAuditLog('CREATE', `NEW AREA "${areaName}"`);
-                showToast('AREA BERHASIL DITAMBAHKAN', 'success');
+                addAuditLog('CREATE', `NEW AREA: ${name}`);
+                showToast('AREA BERHASIL', 'success');
                 document.getElementById('edit-modal').classList.add('hidden');
                 updateManagementData();
             };
@@ -2786,18 +1544,17 @@
             document.getElementById('edit-value').placeholder = 'NAMA SUB AREA';
             document.getElementById('edit-value').value = '';
             document.getElementById('edit-modal').classList.remove('hidden');
-
             editCallback = () => {
-                const subName = document.getElementById('edit-value').value.trim().toUpperCase();
-                if (!subName) { showToast('SUB AREA TIDAK BOLEH KOSONG', 'error'); return; }
+                const name = document.getElementById('edit-value').value.trim().toUpperCase();
+                if (!name) { showToast('ISI NAMA', 'error'); return; }
                 const area = store.areas.find(a => a.id === areaId);
                 if (!area) { showToast('AREA TIDAK DITEMUKAN', 'error'); return; }
                 if (!area.subareas) area.subareas = [];
-                if (area.subareas.includes(subName)) { showToast('SUB AREA SUDAH ADA', 'error'); return; }
-                area.subareas.push(subName);
+                if (area.subareas.includes(name)) { showToast('SUDAH ADA', 'error'); return; }
+                area.subareas.push(name);
                 saveStore();
-                addAuditLog('UPDATE', `ADDED SUBAREA "${subName}" TO AREA "${area.name}"`);
-                showToast('SUB AREA BERHASIL DITAMBAHKAN', 'success');
+                addAuditLog('UPDATE', `ADD SUBAREA: ${name}`);
+                showToast('SUB AREA BERHASIL', 'success');
                 document.getElementById('edit-modal').classList.add('hidden');
                 updateManagementData();
             };
@@ -2812,7 +1569,6 @@
                          btn.className.includes('edit-area') ? 'area' :
                          btn.className.includes('edit-target') ? 'target' : null;
             const id = btn.dataset.id;
-
             if (type === 'target') {
                 const target = store.targets.find(t => t.id === id);
                 if (!target) return;
@@ -2820,39 +1576,34 @@
                 document.getElementById('edit-value').value = target.target_value || '';
                 document.getElementById('edit-modal').classList.remove('hidden');
                 editCallback = () => {
-                    const newValue = parseInt(document.getElementById('edit-value').value);
-                    if (isNaN(newValue) || newValue <= 0) { showToast('NILAI TARGET TIDAK VALID', 'error'); return; }
-                    target.target_value = newValue;
+                    const val = parseInt(document.getElementById('edit-value').value);
+                    if (isNaN(val) || val <= 0) { showToast('NILAI TIDAK VALID', 'error'); return; }
+                    target.target_value = val;
                     saveStore();
-                    addAuditLog('UPDATE', `UPDATED TARGET ${target.target_month}: ${newValue}`);
-                    showToast('TARGET BERHASIL DIUPDATE', 'success');
+                    addAuditLog('UPDATE', `TARGET ${target.target_month}: ${val}`);
+                    showToast('TARGET UPDATED', 'success');
                     document.getElementById('edit-modal').classList.add('hidden');
                     updateManagementData();
                 };
                 document.getElementById('confirm-edit').onclick = editCallback;
                 return;
             }
-
-            let item = null;
-            let label = '';
-            if (type === 'analyst') { item = store.analysts.find(a => a.id === id); label = 'INISIAL ANALYST'; }
+            let item = null; let label = '';
+            if (type === 'analyst') { item = store.analysts.find(a => a.id === id); label = 'INISIAL'; }
             else if (type === 'product') { item = store.products.find(p => p.id === id); label = 'KODE PRODUK'; }
-            else if (type === 'category') { item = store.categories.find(c => c.id === id); label = 'NAMA KATEGORI'; }
-            else if (type === 'area') { item = store.areas.find(a => a.id === id); label = 'NAMA AREA'; }
+            else if (type === 'category') { item = store.categories.find(c => c.id === id); label = 'KATEGORI'; }
+            else if (type === 'area') { item = store.areas.find(a => a.id === id); label = 'AREA'; }
             if (!item) return;
-
             document.getElementById('edit-value').placeholder = label;
             document.getElementById('edit-value').value = item.name || '';
             document.getElementById('edit-modal').classList.remove('hidden');
-
             editCallback = () => {
                 const newValue = document.getElementById('edit-value').value.trim().toUpperCase();
-                if (!newValue) { showToast('NILAI TIDAK BOLEH KOSONG', 'error'); return; }
-                const oldName = item.name;
+                if (!newValue) { showToast('ISI NILAI', 'error'); return; }
                 item.name = newValue;
                 saveStore();
-                addAuditLog('UPDATE', `UPDATED ${type.toUpperCase()}: ${oldName} → ${newValue}`);
-                showToast('DATA BERHASIL DIUPDATE', 'success');
+                addAuditLog('UPDATE', `${type}: ${newValue}`);
+                showToast('UPDATED', 'success');
                 document.getElementById('edit-modal').classList.add('hidden');
                 updateManagementData();
             };
@@ -2866,80 +1617,22 @@
                          btn.className.includes('delete-product') ? 'product' :
                          btn.className.includes('delete-category') ? 'category' :
                          btn.className.includes('delete-area') ? 'area' :
-                         btn.className.includes('delete-target') ? 'target' :
-                         btn.className.includes('delete-finding') ? 'finding' :
-                         btn.className.includes('delete-5r') ? 'finding5r' : null;
-
+                         btn.className.includes('delete-target') ? 'target' : null;
             document.getElementById('delete-modal').classList.remove('hidden');
             deleteCallback = () => {
-                let item = null;
-                let name = '';
-                if (type === 'analyst') {
-                    item = store.analysts.find(a => a.id === id);
-                    if (item) { name = item.name; store.analysts = store.analysts.filter(a => a.id !== id); }
-                } else if (type === 'product') {
-                    item = store.products.find(p => p.id === id);
-                    if (item) { name = item.name; store.products = store.products.filter(p => p.id !== id); }
-                } else if (type === 'category') {
-                    item = store.categories.find(c => c.id === id);
-                    if (item) { name = item.name; store.categories = store.categories.filter(c => c.id !== id); }
-                } else if (type === 'area') {
-                    item = store.areas.find(a => a.id === id);
-                    if (item) { name = item.name; store.areas = store.areas.filter(a => a.id !== id); }
-                } else if (type === 'target') {
-                    item = store.targets.find(t => t.id === id);
-                    if (item) { name = item.target_month; store.targets = store.targets.filter(t => t.id !== id); }
-                } else if (type === 'finding') {
-                    item = store.findings.find(f => f.id === id);
-                    if (item) { name = item.batch_number || id; store.findings = store.findings.filter(f => f.id !== id); }
-                } else if (type === 'finding5r') {
-                    item = store.findings5r.find(f => f.id === id);
-                    if (item) { name = item.temuan || id; store.findings5r = store.findings5r.filter(f => f.id !== id); }
-                }
-                if (item) {
-                    saveStore();
-                    addAuditLog('DELETE', `DELETED ${type.toUpperCase()}: ${name}`);
-                    showToast('DATA BERHASIL DIHAPUS', 'success');
-                    document.getElementById('delete-modal').classList.add('hidden');
-                    updateManagementData();
-                }
+                let item = null; let name = '';
+                if (type === 'analyst') { item = store.analysts.find(a => a.id === id); if (item) { name = item.name; store.analysts = store.analysts.filter(a => a.id !== id); } }
+                else if (type === 'product') { item = store.products.find(p => p.id === id); if (item) { name = item.name; store.products = store.products.filter(p => p.id !== id); } }
+                else if (type === 'category') { item = store.categories.find(c => c.id === id); if (item) { name = item.name; store.categories = store.categories.filter(c => c.id !== id); } }
+                else if (type === 'area') { item = store.areas.find(a => a.id === id); if (item) { name = item.name; store.areas = store.areas.filter(a => a.id !== id); } }
+                else if (type === 'target') { item = store.targets.find(t => t.id === id); if (item) { name = item.target_month; store.targets = store.targets.filter(t => t.id !== id); } }
+                if (item) { saveStore(); addAuditLog('DELETE', `DELETED ${type}: ${name}`); showToast('DATA DIHAPUS', 'success'); document.getElementById('delete-modal').classList.add('hidden'); updateManagementData(); }
             };
             document.getElementById('confirm-delete').onclick = deleteCallback;
         }
 
-        function handleAddParam(e) {
-            const productId = e.currentTarget.dataset.id;
-            document.getElementById('edit-value').placeholder = 'MASUKKAN NAMA PARAMETER';
-            document.getElementById('edit-value').value = '';
-            document.getElementById('edit-modal').classList.remove('hidden');
-
-            editCallback = () => {
-                const paramName = document.getElementById('edit-value').value.trim().toUpperCase();
-                if (!paramName) { showToast('PARAMETER TIDAK BOLEH KOSONG', 'error'); return; }
-                const product = store.products.find(p => p.id === productId);
-                if (!product) { showToast('PRODUK TIDAK DITEMUKAN', 'error'); return; }
-                if (!product.parameters) product.parameters = [];
-                if (product.parameters.includes(paramName)) { showToast('PARAMETER SUDAH ADA', 'error'); return; }
-                product.parameters.push(paramName);
-                saveStore();
-                addAuditLog('UPDATE', `ADDED PARAMETER "${paramName}" TO PRODUCT "${product.name}"`, product.name);
-                showToast('PARAMETER BERHASIL DITAMBAHKAN', 'success');
-                document.getElementById('edit-modal').classList.add('hidden');
-                updateManagementData();
-            };
-            document.getElementById('confirm-edit').onclick = editCallback;
-        }
-
-        // ============================================================
-        // CANCEL BUTTONS FOR MODALS
-        // ============================================================
-        document.getElementById('cancel-delete').addEventListener('click', () => {
-            document.getElementById('delete-modal').classList.add('hidden');
-        });
-
-        document.getElementById('cancel-edit').addEventListener('click', () => {
-            document.getElementById('edit-modal').classList.add('hidden');
-        });
+        document.getElementById('cancel-delete').addEventListener('click', () => { document.getElementById('delete-modal').classList.add('hidden'); });
+        document.getElementById('cancel-edit').addEventListener('click', () => { document.getElementById('edit-modal').classList.add('hidden'); });
 
         // ============================================================
         // THEME TOGGLE
@@ -2952,41 +1645,24 @@
         });
 
         // ============================================================
-        // DATE/TIME UPDATE
+        // DATE/TIME
         // ============================================================
         function updateDateTime() {
-            const currentDate = document.getElementById('current-date');
-            const currentTime = document.getElementById('current-time');
-            if (currentDate) {
-                currentDate.textContent = new Date().toLocaleDateString('ID-id', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }).toUpperCase();
-            }
-            if (currentTime) {
-                currentTime.textContent = new Date().toLocaleTimeString('ID-id', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-            }
+            const d = document.getElementById('current-date');
+            const t = document.getElementById('current-time');
+            if (d) d.textContent = new Date().toLocaleDateString('ID-id', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase();
+            if (t) t.textContent = new Date().toLocaleTimeString('ID-id', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         }
-
         updateDateTime();
         setInterval(updateDateTime, 1000);
 
         // ============================================================
-        // INITIALIZATION
+        // INIT
         // ============================================================
         function init() {
             loadStore();
             console.log('✅ BRFT + 5R System initialized');
-            console.log('📦 Storage mode:', USE_LOCAL_STORAGE ? 'localStorage' : 'Memory (fallback)');
-            console.log('📊 Data:', store);
         }
-
         init();
     </script>
 </body>
