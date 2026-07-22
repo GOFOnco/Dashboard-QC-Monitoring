@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QC MONITORING SYSTEM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { box-sizing: border-box; }
+        * { font-family: 'Rajdhani', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; }
+        .toast {
+            position: fixed; top: 20px; right: 20px; padding: 16px 24px;
+            border-radius: 8px; z-index: 9999; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .tab-active { border-bottom: 3px solid #10b981; color: #10b981; }
+        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        .trend-table th {
+            background-color: #374151;
+            color: #e5e7eb;
+            font-size: 0.75rem;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            border-right: 1px solid #4b5563;
+        }
+        .trend-table td {
+            padding: 0.6rem 0.5rem;
+            text-align: center;
+            border-right: 1px solid #4b5563;
+            border-bottom: 1px solid #374151;
+        }
+        .trend-table tr:hover { background-color: #374151; }
+        .item-badge {
+            background-color: #1e3a5f;
+            color: #93c5fd;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .product-badge { background-color: #3b2e5f; color: #c4b5fd; }
+        .category-badge { background-color: #1e4a4a; color: #99f6e4; }
+        .parameter-tag {
+            display: inline-block;
+            background-color: #1e3a5f;
+            color: #93c5fd;
+            padding: 0.15rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.65rem;
+            margin: 0.1rem 0.2rem;
+        }
+        .photo-thumb {
+            width: 50px; height: 50px; object-fit: cover;
+            border-radius: 4px; cursor: pointer;
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-900 text-gray-100">
+    <div id="app" class="h-full w-full flex flex-col overflow-auto">
+        <!-- Header -->
+        <header class="bg-gray-800 border-b border-gray-700 px-6 py-4 flex items-center justify-between flex-shrink-0">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <div>
+                    <h1 id="app-title" class="text-xl font-bold text-emerald-400">QC MONITORING SYSTEM</h1>
+                    <p id="company-name" class="text-xs text-gray-400">Created by MSTD</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <div id="current-date" class="text-sm text-gray-400 font-medium"></div>
+                    <div id="current-time" class="text-xs text-emerald-400 font-bold tracking-wider mt-1"></div>
+                </div>
+                <button id="theme-toggle" class="p-2 rounded-lg bg-gray-700 hover:bg-gray-600 transition">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="bg-gray-800 border-b border-gray-700 px-6 flex-shrink-0">
+            <div class="flex gap-1 overflow-x-auto">
+                <button class="tab-btn tab-active px-4 py-3 text-sm font-medium transition hover:text-emerald-400" data-tab="dashboard"> 📊 DASHBOARD </button>
+                <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-400 transition hover:text-emerald-400" data-tab="input"> ➕ INPUT QC </button>
+                <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-400 transition hover:text-emerald-400" data-tab="management"> ⚙️ MANAGEMENT </button>
+                <button class="tab-btn px-4 py-3 text-sm font-medium text-gray-400 transition hover:text-emerald-400" data-tab="audit"> 📋 AUDIT TRAIL </button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-1 p-6 overflow-auto">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-400 mb-1">Σ TEMUAN</p>
+                                <p id="total-findings" class="text-3xl font-bold text-white">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-500/20 rounded-xl flex items-center justify-center">
+                                <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-xs text-gray-400 mb-1">Σ BATCH DENGAN TEMUAN</p>
+                                <p id="unique-batches" class="text-3xl font-bold text-orange-400">0</p>
+                            </div>
+                            <div class="w-12
