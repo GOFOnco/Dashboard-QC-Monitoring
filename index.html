@@ -61,6 +61,7 @@
             border-radius: 9999px;
             font-size: 0.65rem;
             margin: 0.1rem 0.2rem;
+            cursor: default;
         }
         .photo-thumb {
             width: 50px; height: 50px; object-fit: cover;
@@ -90,14 +91,6 @@
             font-size: 0.65rem;
             margin: 0.1rem 0.2rem;
         }
-        .subarea-badge {
-            background-color: #3b2e5f;
-            color: #c4b5fd;
-            padding: 0.1rem 0.5rem;
-            border-radius: 9999px;
-            font-size: 0.6rem;
-            margin: 0.05rem 0.1rem;
-        }
         .analyst-list-item {
             border-left: 3px solid #10b981;
             margin-bottom: 0.75rem;
@@ -107,13 +100,6 @@
             margin-left: 1rem;
             margin-top: 0.25rem;
             margin-bottom: 0.25rem;
-        }
-        .subarea-item {
-            border-left: 3px solid #f59e0b;
-            margin-left: 2rem;
-            margin-top: 0.15rem;
-            margin-bottom: 0.15rem;
-            font-size: 0.8rem;
         }
         .temuan-item {
             background-color: #1f2937;
@@ -154,16 +140,39 @@
             text-align: center;
             margin-top: 2px;
         }
-        .photo-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
         }
-        .photo-group .photo-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .product-item {
+            background-color: #1f2937;
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-left: 3px solid #10b981;
         }
+        .product-item .params-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .product-item .param-tag {
+            background-color: #1e3a5f;
+            color: #93c5fd;
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 0.6rem;
+            display: inline-block;
+        }
+        .product-item .param-tag .remove-param {
+            cursor: pointer;
+            color: #ef4444;
+            margin-left: 4px;
+            font-size: 0.5rem;
+        }
+        .product-item .param-tag .remove-param:hover { color: #f87171; }
     </style>
 </head>
 <body class="h-full bg-gray-900 text-gray-100">
@@ -222,6 +231,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" id="summary-cards"></div>
                 <div class="bg-gray-800 rounded-xl p-4 mb-6 card-shadow border border-gray-700" id="filter-section"></div>
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="chart-section"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6" id="chart-section-2"></div>
                 <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700" id="table-section"></div>
             </div>
             <div id="input-tab" class="tab-content hidden"></div>
@@ -379,13 +389,17 @@
             return a ? a.name : id;
         }
 
-        function getSubAreas(areaId) {
-            const a = store.areas.find(x => x.id === areaId);
-            return a ? a.subareas || [] : [];
+        function getAnalystByArea(areaId) {
+            const area = store.areas.find(a => a.id === areaId);
+            if (area) {
+                return store.analysts.find(a => a.id === area.analyst_id);
+            }
+            return null;
         }
 
-        function getAreasByAnalyst(analystId) {
-            return store.areas.filter(a => a.analyst_id === analystId);
+        function getProductParameters(productId) {
+            const p = store.products.find(x => x.id === productId);
+            return p ? p.parameters || [] : [];
         }
 
         function openZoom(src) {
@@ -529,6 +543,67 @@
             `;
             document.getElementById('filter-section').innerHTML = filterHTML;
 
+            const chartHTML = `
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📈 TREND % QC PASS PER BULAN</h3>
+                    <div class="chart-container"><canvas id="chart-trend"></canvas></div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 TREND TEMUAN PER BULAN</h3>
+                    <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+                </div>
+            `;
+            document.getElementById('chart-section').innerHTML = chartHTML;
+
+            const chartHTML2 = `
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📦 KODE PRODUK</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="chart-container"><canvas id="chart-product"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER PRODUK (TOP 8)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-product"></tr></thead>
+                                    <tbody id="trend-table-body-product"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">👤 ANALYST</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="chart-container"><canvas id="chart-analyst"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER ANALYST (TOP 10)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-analyst"></tr></thead>
+                                    <tbody id="trend-table-body-analyst"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ KATEGORI TEMUAN</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="chart-container"><canvas id="chart-category"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-emerald-400 mb-2 font-bold">📋 TREN TEMUAN PER KATEGORI (TOP 8)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-table-header-category"></tr></thead>
+                                    <tbody id="trend-table-body-category"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chart-section-2').innerHTML = chartHTML2;
+
             const tableHTML = `
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-sm font-semibold text-gray-300">📋 DETAIL TEMUAN QC</h3>
@@ -577,6 +652,8 @@
             if (dateFrom) filtered = filtered.filter(f => f.date >= dateFrom);
             if (dateTo) filtered = filtered.filter(f => f.date <= dateTo);
 
+            currentFilteredFindings = filtered;
+
             const tbody = document.getElementById('findings-table');
             if (!tbody) return;
             if (filtered.length === 0) {
@@ -602,6 +679,9 @@
                     <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.description||'-'}</td>
                 </tr>`;
             }).join('');
+
+            updateChartsBrft(filtered);
+            updateTrendTablesBrft(filtered);
         }
 
         function resetFilterBrft() {
@@ -614,8 +694,225 @@
             updateDashboardBrft();
         }
 
+        function updateChartsBrft(filtered) {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'center',
+                        align: 'center',
+                        color: '#ffffff',
+                        font: { size: 12, weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
+                scales: {
+                    x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 9 } } },
+                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 9 } } }
+                }
+            };
+
+            const currentYear = new Date().getFullYear();
+            const monthlyData = {};
+            store.findings.forEach(f => {
+                if (f.date) {
+                    const month = f.date.substring(0, 7);
+                    const year = parseInt(f.date.substring(0, 4));
+                    if (year === currentYear) {
+                        monthlyData[month] = (monthlyData[month] || 0) + 1;
+                    }
+                }
+            });
+
+            const months = Object.keys(monthlyData).sort();
+            const monthLabels = months.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+            });
+
+            const qcTrend = months.map(m => {
+                const target = store.targets.find(t => t.target_month === m);
+                if (target) {
+                    const findingsInMonth = store.findings.filter(f => f.date && f.date.startsWith(m));
+                    const uniqueBatchSet = new Set(findingsInMonth.map(f => f.batch_number).filter(b => b));
+                    return target.target_value > 0 ? ((target.target_value - uniqueBatchSet.size) / target.target_value) * 100 : 0;
+                }
+                return 0;
+            });
+
+            const chartTrend = document.getElementById('chart-trend');
+            if (chartTrend) {
+                if (charts.trend) charts.trend.destroy();
+                charts.trend = new Chart(chartTrend, {
+                    type: 'line',
+                    data: { labels: monthLabels, datasets: [{ data: qcTrend, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4 }] },
+                    options: {
+                        ...chartOptions,
+                        scales: { ...chartOptions.scales, y: { ...chartOptions.scales.y, min: 0, max: 100 } },
+                        plugins: {
+                            ...chartOptions.plugins,
+                            datalabels: { ...chartOptions.plugins.datalabels, formatter: (value) => value > 0 ? value.toFixed(1) + '%' : '' }
+                        }
+                    },
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const chartMonthly = document.getElementById('chart-monthly');
+            if (chartMonthly) {
+                if (charts.monthly) charts.monthly.destroy();
+                charts.monthly = new Chart(chartMonthly, {
+                    type: 'bar',
+                    data: { labels: monthLabels, datasets: [{ data: months.map(m => monthlyData[m]), backgroundColor: '#f59e0b' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const productData = {};
+            filtered.forEach(f => { if (f.product_name) productData[f.product_name] = (productData[f.product_name] || 0) + 1; });
+            const productSorted = Object.entries(productData).sort((a, b) => b[1] - a[1]);
+            const chartProduct = document.getElementById('chart-product');
+            if (chartProduct) {
+                if (charts.product) charts.product.destroy();
+                charts.product = new Chart(chartProduct, {
+                    type: 'bar',
+                    data: { labels: productSorted.map(p => p[0]), datasets: [{ data: productSorted.map(p => p[1]), backgroundColor: '#8b5cf6' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const analystData = {};
+            filtered.forEach(f => { if (f.analyst_name) analystData[f.analyst_name] = (analystData[f.analyst_name] || 0) + 1; });
+            const analystSorted = Object.entries(analystData).sort((a, b) => b[1] - a[1]);
+            const chartAnalyst = document.getElementById('chart-analyst');
+            if (chartAnalyst) {
+                if (charts.analyst) charts.analyst.destroy();
+                charts.analyst = new Chart(chartAnalyst, {
+                    type: 'bar',
+                    data: { labels: analystSorted.map(a => a[0]), datasets: [{ data: analystSorted.map(a => a[1]), backgroundColor: '#ec4899' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const categoryData = {};
+            filtered.forEach(f => { if (f.category_name) categoryData[f.category_name] = (categoryData[f.category_name] || 0) + 1; });
+            const categorySorted = Object.entries(categoryData).sort((a, b) => b[1] - a[1]);
+            const chartCategory = document.getElementById('chart-category');
+            if (chartCategory) {
+                if (charts.category) charts.category.destroy();
+                charts.category = new Chart(chartCategory, {
+                    type: 'bar',
+                    data: { labels: categorySorted.map(c => c[0]), datasets: [{ data: categorySorted.map(c => c[1]), backgroundColor: '#14b8a6' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+        }
+
+        function updateTrendTablesBrft(data) {
+            const productTrend = generateTrendTable(data, 'product_name', 'PRODUK', 8);
+            const productHeader = document.getElementById('trend-table-header-product');
+            const productBody = document.getElementById('trend-table-body-product');
+            if (productHeader) productHeader.innerHTML = productTrend.header;
+            if (productBody) productBody.innerHTML = productTrend.body;
+
+            const analystTrend = generateTrendTable(data, 'analyst_name', 'ANALYST', 10);
+            const analystHeader = document.getElementById('trend-table-header-analyst');
+            const analystBody = document.getElementById('trend-table-body-analyst');
+            if (analystHeader) analystHeader.innerHTML = analystTrend.header;
+            if (analystBody) analystBody.innerHTML = analystTrend.body;
+
+            const categoryTrend = generateTrendTable(data, 'category_name', 'KATEGORI', 8);
+            const categoryHeader = document.getElementById('trend-table-header-category');
+            const categoryBody = document.getElementById('trend-table-body-category');
+            if (categoryHeader) categoryHeader.innerHTML = categoryTrend.header;
+            if (categoryBody) categoryBody.innerHTML = categoryTrend.body;
+        }
+
+        function generateTrendTable(data, nameField, nameLabel, limit = 8) {
+            if (!data || data.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            const itemMonthlyData = {};
+            const monthsSet = new Set();
+
+            data.forEach(f => {
+                if (f.date && f[nameField]) {
+                    const month = f.date.substring(0, 7);
+                    monthsSet.add(month);
+                    if (!itemMonthlyData[f[nameField]]) {
+                        itemMonthlyData[f[nameField]] = {};
+                    }
+                    itemMonthlyData[f[nameField]][month] = (itemMonthlyData[f[nameField]][month] || 0) + 1;
+                }
+            });
+
+            const sortedMonths = Array.from(monthsSet).sort();
+            const itemTotals = Object.keys(itemMonthlyData).map(item => ({
+                name: item,
+                total: Object.values(itemMonthlyData[item]).reduce((sum, val) => sum + val, 0)
+            }));
+            itemTotals.sort((a, b) => b.total - a.total);
+            const topItems = itemTotals.slice(0, limit).map(item => item.name);
+
+            if (topItems.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            let headerHTML = `<th class="sticky left-0 bg-gray-700 text-left" style="min-width:120px;">${nameLabel}</th>`;
+            sortedMonths.forEach(month => {
+                const [year, monthNum] = month.split('-');
+                headerHTML += `<th style="min-width:70px;">${monthNames[parseInt(monthNum) - 1]}<br><span class="text-xs text-gray-400">${year}</span></th>`;
+            });
+            headerHTML += '<th style="min-width:80px; background-color:#4b5563;">TOTAL</th>';
+
+            let bodyHTML = '';
+            topItems.forEach(item => {
+                let rowHTML = `<tr><td class="sticky left-0 bg-gray-800 font-bold text-left"><span class="item-badge">${item}</span></td>`;
+                let itemTotal = 0;
+                sortedMonths.forEach(month => {
+                    const count = itemMonthlyData[item]?.[month] || 0;
+                    itemTotal += count;
+                    let bgColor = 'bg-gray-800';
+                    if (count > 0) {
+                        if (count >= 5) bgColor = 'bg-red-900/60';
+                        else if (count >= 3) bgColor = 'bg-orange-900/50';
+                        else if (count >= 1) bgColor = 'bg-yellow-900/40';
+                    }
+                    rowHTML += `<td class="${bgColor} font-mono">${count || '-'}</td>`;
+                });
+                rowHTML += `<td class="bg-blue-900/40 font-bold">${itemTotal}</td></tr>`;
+                bodyHTML += rowHTML;
+            });
+
+            let totalRowHTML = '<tr class="border-t-2 border-gray-600 bg-gray-700/50"><td class="sticky left-0 bg-gray-700 font-bold">TOTAL</td>';
+            sortedMonths.forEach(month => {
+                let monthTotal = 0;
+                topItems.forEach(item => {
+                    monthTotal += itemMonthlyData[item]?.[month] || 0;
+                });
+                totalRowHTML += `<td class="font-bold">${monthTotal || '-'}</td>`;
+            });
+            let grandTotal = 0;
+            topItems.forEach(item => {
+                grandTotal += itemTotals.find(i => i.name === item)?.total || 0;
+            });
+            totalRowHTML += `<td class="bg-blue-800/60 font-bold">${grandTotal}</td></tr>`;
+            bodyHTML += totalRowHTML;
+
+            return { header: headerHTML, body: bodyHTML };
+        }
+
         function exportPdfBrft() {
-            const data = store.findings;
+            const data = currentFilteredFindings.length ? currentFilteredFindings : store.findings;
             if (data.length === 0) { showToast('TIDAK ADA DATA', 'error'); return; }
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -638,7 +935,7 @@
         }
 
         function exportExcelBrft() {
-            const data = store.findings;
+            const data = currentFilteredFindings.length ? currentFilteredFindings : store.findings;
             if (data.length === 0) { showToast('TIDAK ADA DATA', 'error'); return; }
             const excelData = data.map((f, i) => ({
                 NO: i+1, TANGGAL: f.date||'-', BATCH: f.batch_number||'-',
@@ -675,6 +972,45 @@
                 </div>
             `;
 
+            // Setup product change handler untuk parameter
+            document.getElementById('input-product').addEventListener('change', function() {
+                const productId = this.value;
+                const container = document.getElementById('parameter-container');
+                if (!container) {
+                    // Buat container jika belum ada
+                    const parent = this.closest('.space-y-4');
+                    const paramDiv = document.createElement('div');
+                    paramDiv.innerHTML = `
+                        <label class="block text-xs text-gray-400 mb-1">PARAMETER ANALISA *</label>
+                        <div id="parameter-container" class="flex flex-wrap gap-2 p-3 bg-gray-700/50 rounded-lg min-h-[50px] border border-gray-600">
+                            <span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>
+                        </div>
+                    `;
+                    parent.insertBefore(paramDiv, document.getElementById('input-category').closest('div'));
+                }
+                const container2 = document.getElementById('parameter-container');
+                if (!productId) {
+                    container2.innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
+                    return;
+                }
+                const params = getProductParameters(productId);
+                if (params.length === 0) {
+                    container2.innerHTML = '<span class="text-gray-400 text-sm">BELUM ADA PARAMETER UNTUK PRODUK INI</span>';
+                    return;
+                }
+                let html = '<div class="flex flex-wrap gap-2 w-full"><span class="text-xs text-gray-400 w-full">PILIH PARAMETER:</span>';
+                params.forEach(p => {
+                    html += `
+                        <label class="flex items-center gap-1 bg-gray-600/50 px-3 py-1 rounded-lg cursor-pointer hover:bg-gray-600 transition">
+                            <input type="checkbox" class="param-checkbox text-emerald-600 rounded" value="${p}">
+                            <span class="text-sm">${p}</span>
+                        </label>
+                    `;
+                });
+                html += '</div>';
+                container2.innerHTML = html;
+            });
+
             document.getElementById('submit-finding').addEventListener('click', async function() {
                 const productId = document.getElementById('input-product').value;
                 const categoryId = document.getElementById('input-category').value;
@@ -685,27 +1021,43 @@
                 if (!productId || !categoryId || !analystId || !batch || !desc || !date) {
                     showToast('SEMUA FIELD WAJIB DIISI!', 'error'); return;
                 }
+                
+                const paramCheckboxes = document.querySelectorAll('.param-checkbox:checked');
+                const selectedParams = Array.from(paramCheckboxes).map(cb => cb.value);
+                if (selectedParams.length === 0) {
+                    showToast('PILIH MINIMAL 1 PARAMETER', 'error'); return;
+                }
+
                 const photoInput = document.getElementById('input-photo');
                 let photoData = null;
                 if (photoInput.files && photoInput.files[0]) {
                     photoData = await new Promise(r => { const reader = new FileReader(); reader.onload = e => r(e.target.result); reader.readAsDataURL(photoInput.files[0]); });
                 }
-                store.findings.push({
-                    id: DB.id(), date, product_id: productId, product_name: store.products.find(p => p.id === productId)?.name || productId,
-                    category_id: categoryId, category_name: store.categories.find(c => c.id === categoryId)?.name || categoryId,
-                    analyst_id: analystId, analyst_name: getAnalystName(analystId),
-                    batch_number: batch, parameter: '-', description: desc, photo: photoData,
-                    created_at: new Date().toISOString()
-                });
+                
+                const productName = store.products.find(p => p.id === productId)?.name || productId;
+                const categoryName = store.categories.find(c => c.id === categoryId)?.name || categoryId;
+                const analystName = getAnalystName(analystId);
+
+                for (const param of selectedParams) {
+                    store.findings.push({
+                        id: DB.id(), date, product_id: productId, product_name: productName,
+                        category_id: categoryId, category_name: categoryName,
+                        analyst_id: analystId, analyst_name: analystName,
+                        batch_number: batch, parameter: param, description: desc, photo: photoData,
+                        created_at: new Date().toISOString()
+                    });
+                }
                 saveStore();
-                addAuditLog('CREATE', `NEW FINDING: ${batch}`);
-                showToast('TEMUAN DISIMPAN', 'success');
+                addAuditLog('CREATE', `NEW FINDING: ${batch} - ${selectedParams.length} params`);
+                showToast(`${selectedParams.length} TEMUAN DISIMPAN`, 'success');
                 document.getElementById('input-product').value = '';
                 document.getElementById('input-batch').value = '';
                 document.getElementById('input-description').value = '';
                 document.getElementById('input-photo').value = '';
                 document.getElementById('input-category').value = '';
                 document.getElementById('input-analyst').value = '';
+                const container = document.getElementById('parameter-container');
+                if (container) container.innerHTML = '<span class="text-gray-400 text-sm">PILIH PRODUK TERLEBIH DAHULU</span>';
                 const now = new Date();
                 document.getElementById('input-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
                 if (currentProject === 'brft') loadDashboardBrft();
@@ -740,27 +1092,66 @@
                 </div>
                 <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700">
                     <div class="flex items-center justify-between">
-                        <div><p class="text-xs text-gray-400 mb-1">Σ AUDITOR</p><p id="total-auditor-5r" class="text-3xl font-bold text-orange-400">${new Set(store.findings5r.map(f => f.auditor_name).filter(Boolean)).size}</p></div>
-                        <div class="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center"><svg class="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
+                        <div><p class="text-xs text-gray-400 mb-1">Σ AREA</p><p id="total-area-5r" class="text-3xl font-bold text-blue-400">${new Set(store.findings5r.map(f => f.area_name).filter(Boolean)).size}</p></div>
+                        <div class="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center"><svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></div>
                     </div>
                 </div>
             `;
             document.getElementById('summary-cards').innerHTML = summaryHTML;
 
-            const auditorOptions = [...new Set(store.findings5r.map(f => f.auditor_name).filter(Boolean))].map(a => `<option value="${a}">${a}</option>`).join('');
+            const auditeeOptions = [...new Set(store.findings5r.map(f => f.auditee_name).filter(Boolean))].map(a => `<option value="${a}">${a}</option>`).join('');
             const areaOptions = store.areas.map(a => `<option value="${a.name}">${a.name}</option>`).join('');
             const filterHTML = `
                 <div class="flex flex-wrap gap-3 items-end">
                     <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">DARI</label> <input type="date" id="filter-5r-date-from" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"></div>
                     <div class="flex-1 min-w-[150px]"><label class="block text-xs text-gray-400 mb-1">SAMPAI</label> <input type="date" id="filter-5r-date-to" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"></div>
                     <div class="flex-1 min-w-[130px]"><label class="block text-xs text-gray-400 mb-1">AREA</label> <select id="filter-5r-area" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option>${areaOptions}</select></div>
-                    <div class="flex-1 min-w-[130px]"><label class="block text-xs text-gray-400 mb-1">AUDITOR</label> <select id="filter-5r-auditor" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option>${auditorOptions}</select></div>
+                    <div class="flex-1 min-w-[130px]"><label class="block text-xs text-gray-400 mb-1">AUDITEE</label> <select id="filter-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option>${auditeeOptions}</select></div>
                     <div class="flex-1 min-w-[120px]"><label class="block text-xs text-gray-400 mb-1">STATUS</label> <select id="filter-5r-status" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"><option value="">SEMUA</option><option value="open">OPEN</option><option value="closed">CLOSED</option></select></div>
                     <button id="apply-filter-5r" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition">🔍 FILTER</button>
                     <button id="reset-filter-5r" class="bg-gray-600 hover:bg-gray-500 px-4 py-2 rounded-lg text-sm font-medium transition">↺ RESET</button>
                 </div>
             `;
             document.getElementById('filter-section').innerHTML = filterHTML;
+
+            const chartHTML = `
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">📊 TREND TEMUAN 5R PER BULAN</h3>
+                    <div class="chart-container"><canvas id="chart-5r-monthly"></canvas></div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">🏷️ AREA</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="chart-container"><canvas id="chart-5r-area"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-purple-400 mb-2 font-bold">📋 TREN TEMUAN PER AREA (TOP 8)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-5r-table-header-area"></tr></thead>
+                                    <tbody id="trend-5r-table-body-area"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-800 rounded-xl p-5 card-shadow border border-gray-700 col-span-2">
+                    <h3 class="text-sm font-semibold text-gray-300 mb-4">👤 AUDITEE</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div><div class="chart-container"><canvas id="chart-5r-auditee"></canvas></div></div>
+                        <div>
+                            <div class="text-xs text-purple-400 mb-2 font-bold">📋 TREN TEMUAN PER AUDITEE (TOP 10)</div>
+                            <div class="overflow-x-auto max-h-72 overflow-y-auto border border-gray-700 rounded-lg">
+                                <table class="w-full text-sm trend-table">
+                                    <thead class="sticky top-0 bg-gray-700 z-10"><tr id="trend-5r-table-header-auditee"></tr></thead>
+                                    <tbody id="trend-5r-table-body-auditee"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chart-section').innerHTML = chartHTML;
+            document.getElementById('chart-section-2').innerHTML = '';
 
             const tableHTML = `
                 <div class="flex justify-between items-center mb-4">
@@ -778,14 +1169,13 @@
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITOR</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AUDITEE</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AREA</th>
-                            <th class="text-left py-3 px-3 text-gray-400 font-medium">SUB</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO BEFORE</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">FOTO AFTER</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">TEMUAN</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">STATUS</th>
                             <th class="text-left py-3 px-3 text-gray-400 font-medium">AKSI</th>
                         </tr></thead>
-                        <tbody id="findings-5r-table">${store.findings5r.length === 0 ? '<tr><td colspan="11" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}</tbody>
+                        <tbody id="findings-5r-table">${store.findings5r.length === 0 ? '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>' : ''}</tbody>
                     </table>
                 </div>
             `;
@@ -811,24 +1201,27 @@
             const dateFrom = document.getElementById('filter-5r-date-from')?.value;
             const dateTo = document.getElementById('filter-5r-date-to')?.value;
             const areaFilter = document.getElementById('filter-5r-area')?.value;
-            const auditorFilter = document.getElementById('filter-5r-auditor')?.value;
+            const auditeeFilter = document.getElementById('filter-5r-auditee')?.value;
             const statusFilter = document.getElementById('filter-5r-status')?.value;
 
             if (dateFrom) filtered = filtered.filter(f => f.date >= dateFrom);
             if (dateTo) filtered = filtered.filter(f => f.date <= dateTo);
             if (areaFilter) filtered = filtered.filter(f => f.area_name === areaFilter);
-            if (auditorFilter) filtered = filtered.filter(f => f.auditor_name === auditorFilter);
+            if (auditeeFilter) filtered = filtered.filter(f => f.auditee_name === auditeeFilter);
             if (statusFilter) filtered = filtered.filter(f => f.status === statusFilter);
 
             document.getElementById('total-5r').textContent = filtered.length;
             document.getElementById('total-open-5r').textContent = filtered.filter(f => f.status !== 'closed').length;
             document.getElementById('total-closed-5r').textContent = filtered.filter(f => f.status === 'closed').length;
-            document.getElementById('total-auditor-5r').textContent = new Set(filtered.map(f => f.auditor_name).filter(Boolean)).size;
+            document.getElementById('total-area-5r').textContent = new Set(filtered.map(f => f.area_name).filter(Boolean)).size;
+
+            updateCharts5r(filtered);
+            updateTrendTables5r(filtered);
 
             const tbody = document.getElementById('findings-5r-table');
             if (!tbody) return;
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="11" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="10" class="py-8 text-center text-gray-500">TIDAK ADA DATA</td></tr>';
                 return;
             }
 
@@ -840,12 +1233,10 @@
                     formattedDate = `${d} ${months[parseInt(m)-1]} ${y}`;
                 }
                 
-                // Foto Before
                 const photoBeforeHtml = f.photo ? 
                     `<img src="${f.photo}" class="photo-thumb photo-thumb-before" onclick="event.stopPropagation();openZoom('${f.photo}')">` : 
                     '<span class="text-gray-500 text-xs">-</span>';
                 
-                // Foto After
                 const photoAfterHtml = f.photo_after ? 
                     `<img src="${f.photo_after}" class="photo-thumb photo-thumb-after" onclick="event.stopPropagation();openZoom('${f.photo_after}')">` : 
                     '<span class="text-gray-500 text-xs">-</span>';
@@ -860,7 +1251,6 @@
                     <td class="py-3 px-3 text-gray-300">${f.auditor_name||'-'}</td>
                     <td class="py-3 px-3 text-gray-300">${f.auditee_name||'-'}</td>
                     <td class="py-3 px-3 text-gray-300">${f.area_name||'-'}</td>
-                    <td class="py-3 px-3 text-gray-300">${f.subarea||'-'}</td>
                     <td class="py-3 px-3">${photoBeforeHtml}</td>
                     <td class="py-3 px-3">${photoAfterHtml}</td>
                     <td class="py-3 px-3 text-gray-300 max-w-xs whitespace-normal break-words">${f.temuan||'-'}</td>
@@ -886,9 +1276,178 @@
             const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
             document.getElementById('filter-5r-date-to').value = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
             document.getElementById('filter-5r-area').value = '';
-            document.getElementById('filter-5r-auditor').value = '';
+            document.getElementById('filter-5r-auditee').value = '';
             document.getElementById('filter-5r-status').value = '';
             updateDashboard5r();
+        }
+
+        function updateCharts5r(filtered) {
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    datalabels: {
+                        anchor: 'center',
+                        align: 'center',
+                        color: '#ffffff',
+                        font: { size: 12, weight: 'bold' },
+                        formatter: (value) => value > 0 ? value : ''
+                    }
+                },
+                scales: {
+                    x: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 9 } } },
+                    y: { grid: { color: '#374151' }, ticks: { color: '#9ca3af', font: { size: 9 } } }
+                }
+            };
+
+            const currentYear = new Date().getFullYear();
+            const monthlyData = {};
+            filtered.forEach(f => {
+                if (f.date) {
+                    const month = f.date.substring(0, 7);
+                    const year = parseInt(f.date.substring(0, 4));
+                    if (year === currentYear) {
+                        monthlyData[month] = (monthlyData[month] || 0) + 1;
+                    }
+                }
+            });
+
+            const months = Object.keys(monthlyData).sort();
+            const monthLabels = months.map(m => {
+                const [year, month] = m.split('-');
+                const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                return `${monthNames[parseInt(month) - 1]} ${year}`;
+            });
+
+            const chartMonthly = document.getElementById('chart-5r-monthly');
+            if (chartMonthly) {
+                if (charts['5r-monthly']) charts['5r-monthly'].destroy();
+                charts['5r-monthly'] = new Chart(chartMonthly, {
+                    type: 'bar',
+                    data: { labels: monthLabels, datasets: [{ data: months.map(m => monthlyData[m]), backgroundColor: '#8b5cf6' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const areaData = {};
+            filtered.forEach(f => { if (f.area_name) areaData[f.area_name] = (areaData[f.area_name] || 0) + 1; });
+            const areaSorted = Object.entries(areaData).sort((a, b) => b[1] - a[1]);
+            const chartArea = document.getElementById('chart-5r-area');
+            if (chartArea) {
+                if (charts['5r-area']) charts['5r-area'].destroy();
+                charts['5r-area'] = new Chart(chartArea, {
+                    type: 'bar',
+                    data: { labels: areaSorted.map(a => a[0]), datasets: [{ data: areaSorted.map(a => a[1]), backgroundColor: '#14b8a6' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+
+            const auditeeData = {};
+            filtered.forEach(f => { if (f.auditee_name) auditeeData[f.auditee_name] = (auditeeData[f.auditee_name] || 0) + 1; });
+            const auditeeSorted = Object.entries(auditeeData).sort((a, b) => b[1] - a[1]);
+            const chartAuditee = document.getElementById('chart-5r-auditee');
+            if (chartAuditee) {
+                if (charts['5r-auditee']) charts['5r-auditee'].destroy();
+                charts['5r-auditee'] = new Chart(chartAuditee, {
+                    type: 'bar',
+                    data: { labels: auditeeSorted.map(a => a[0]), datasets: [{ data: auditeeSorted.map(a => a[1]), backgroundColor: '#ec4899' }] },
+                    options: chartOptions,
+                    plugins: [ChartDataLabels]
+                });
+            }
+        }
+
+        function updateTrendTables5r(data) {
+            const areaTrend = generateTrendTable5r(data, 'area_name', 'AREA', 8);
+            const areaHeader = document.getElementById('trend-5r-table-header-area');
+            const areaBody = document.getElementById('trend-5r-table-body-area');
+            if (areaHeader) areaHeader.innerHTML = areaTrend.header;
+            if (areaBody) areaBody.innerHTML = areaTrend.body;
+
+            const auditeeTrend = generateTrendTable5r(data, 'auditee_name', 'AUDITEE', 10);
+            const auditeeHeader = document.getElementById('trend-5r-table-header-auditee');
+            const auditeeBody = document.getElementById('trend-5r-table-body-auditee');
+            if (auditeeHeader) auditeeHeader.innerHTML = auditeeTrend.header;
+            if (auditeeBody) auditeeBody.innerHTML = auditeeTrend.body;
+        }
+
+        function generateTrendTable5r(data, nameField, nameLabel, limit = 8) {
+            if (!data || data.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            const itemMonthlyData = {};
+            const monthsSet = new Set();
+
+            data.forEach(f => {
+                if (f.date && f[nameField]) {
+                    const month = f.date.substring(0, 7);
+                    monthsSet.add(month);
+                    if (!itemMonthlyData[f[nameField]]) {
+                        itemMonthlyData[f[nameField]] = {};
+                    }
+                    itemMonthlyData[f[nameField]][month] = (itemMonthlyData[f[nameField]][month] || 0) + 1;
+                }
+            });
+
+            const sortedMonths = Array.from(monthsSet).sort();
+            const itemTotals = Object.keys(itemMonthlyData).map(item => ({
+                name: item,
+                total: Object.values(itemMonthlyData[item]).reduce((sum, val) => sum + val, 0)
+            }));
+            itemTotals.sort((a, b) => b.total - a.total);
+            const topItems = itemTotals.slice(0, limit).map(item => item.name);
+
+            if (topItems.length === 0) {
+                return { header: '<th class="p-4 text-center text-gray-400" colspan="2">BELUM ADA DATA</th>', body: '' };
+            }
+
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            let headerHTML = `<th class="sticky left-0 bg-gray-700 text-left" style="min-width:120px;">${nameLabel}</th>`;
+            sortedMonths.forEach(month => {
+                const [year, monthNum] = month.split('-');
+                headerHTML += `<th style="min-width:70px;">${monthNames[parseInt(monthNum) - 1]}<br><span class="text-xs text-gray-400">${year}</span></th>`;
+            });
+            headerHTML += '<th style="min-width:80px; background-color:#4b5563;">TOTAL</th>';
+
+            let bodyHTML = '';
+            topItems.forEach(item => {
+                let rowHTML = `<tr><td class="sticky left-0 bg-gray-800 font-bold text-left"><span class="item-badge">${item}</span></td>`;
+                let itemTotal = 0;
+                sortedMonths.forEach(month => {
+                    const count = itemMonthlyData[item]?.[month] || 0;
+                    itemTotal += count;
+                    let bgColor = 'bg-gray-800';
+                    if (count > 0) {
+                        if (count >= 5) bgColor = 'bg-red-900/60';
+                        else if (count >= 3) bgColor = 'bg-orange-900/50';
+                        else if (count >= 1) bgColor = 'bg-yellow-900/40';
+                    }
+                    rowHTML += `<td class="${bgColor} font-mono">${count || '-'}</td>`;
+                });
+                rowHTML += `<td class="bg-blue-900/40 font-bold">${itemTotal}</td></tr>`;
+                bodyHTML += rowHTML;
+            });
+
+            let totalRowHTML = '<tr class="border-t-2 border-gray-600 bg-gray-700/50"><td class="sticky left-0 bg-gray-700 font-bold">TOTAL</td>';
+            sortedMonths.forEach(month => {
+                let monthTotal = 0;
+                topItems.forEach(item => {
+                    monthTotal += itemMonthlyData[item]?.[month] || 0;
+                });
+                totalRowHTML += `<td class="font-bold">${monthTotal || '-'}</td>`;
+            });
+            let grandTotal = 0;
+            topItems.forEach(item => {
+                grandTotal += itemTotals.find(i => i.name === item)?.total || 0;
+            });
+            totalRowHTML += `<td class="bg-blue-800/60 font-bold">${grandTotal}</td></tr>`;
+            bodyHTML += totalRowHTML;
+
+            return { header: headerHTML, body: bodyHTML };
         }
 
         // ============================================================
@@ -955,7 +1514,7 @@
         // ============================================================
         function loadInputForm5r() {
             const container = document.getElementById('input-tab');
-            const auditeeOptions = store.analysts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
+            const areaOptions = store.areas.map(a => `<option value="${a.id}">${a.name} (${getAnalystName(a.analyst_id)})</option>`).join('');
 
             container.innerHTML = `
                 <div class="max-w-2xl mx-auto">
@@ -966,11 +1525,15 @@
                                 <div><label class="block text-xs text-gray-400 mb-1">TANGGAL *</label> <input type="date" id="input-5r-date" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500"></div>
                                 <div><label class="block text-xs text-gray-400 mb-1">AUDITOR (FREE TEXT)</label> <input type="text" id="input-5r-auditor" placeholder="INISIAL" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 uppercase"></div>
                             </div>
-                            <div><label class="block text-xs text-gray-400 mb-1">AUDITEE *</label> 
-                                <select id="input-5r-auditee" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500">
-                                    <option value="">PILIH AUDITEE</option>
-                                    ${auditeeOptions}
+                            <div><label class="block text-xs text-gray-400 mb-1">AREA *</label> 
+                                <select id="input-5r-area" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500">
+                                    <option value="">PILIH AREA</option>
+                                    ${areaOptions}
                                 </select>
+                            </div>
+                            <div id="auditee-display" class="bg-gray-700/50 rounded-lg p-3 border border-gray-600 hidden">
+                                <label class="block text-xs text-gray-400 mb-1">AUDITEE (OTOMATIS)</label>
+                                <p id="auditee-name" class="text-white font-bold text-lg">-</p>
                             </div>
                             <div id="temuan-5r-list" class="space-y-3"><div class="text-gray-400 text-sm text-center py-4">BELUM ADA TEMUAN. KLIK "TAMBAH"</div></div>
                             <div class="flex gap-3">
@@ -986,35 +1549,28 @@
             temuan5rItems = [];
             renderTemuan5rItems();
 
-            document.getElementById('input-5r-auditee').addEventListener('change', function() {
-                const auditeeId = this.value;
-                document.querySelectorAll('.temuan-area-select').forEach(sel => {
-                    const currentValue = sel.value;
-                    const analystAreas = auditeeId ? getAreasByAnalyst(auditeeId) : [];
-                    sel.innerHTML = '<option value="">PILIH AREA</option>' + 
-                        analystAreas.map(a => `<option value="${a.id}" ${a.id === currentValue ? 'selected' : ''}>${a.name}</option>`).join('');
-                    
-                    const index = parseInt(sel.dataset.index);
-                    if (temuan5rItems[index]) {
-                        temuan5rItems[index].areaId = sel.value;
-                        temuan5rItems[index].subarea = '';
+            document.getElementById('input-5r-area').addEventListener('change', function() {
+                const areaId = this.value;
+                const display = document.getElementById('auditee-display');
+                const nameEl = document.getElementById('auditee-name');
+                
+                if (areaId) {
+                    const analyst = getAnalystByArea(areaId);
+                    if (analyst) {
+                        nameEl.textContent = analyst.name;
+                        display.classList.remove('hidden');
+                    } else {
+                        nameEl.textContent = 'TIDAK DITEMUKAN';
+                        display.classList.remove('hidden');
                     }
-                    sel.dispatchEvent(new Event('change'));
-                });
-                renderTemuan5rItems();
+                } else {
+                    display.classList.add('hidden');
+                }
             });
 
             document.getElementById('add-temuan-5r').addEventListener('click', function() {
-                const auditeeId = document.getElementById('input-5r-auditee').value;
-                temuan5rItems.push({ areaId: '', subarea: '', desc: '', photoData: null });
+                temuan5rItems.push({ desc: '', photoData: null });
                 renderTemuan5rItems();
-                if (auditeeId) {
-                    document.querySelectorAll('.temuan-area-select').forEach(sel => {
-                        const analystAreas = getAreasByAnalyst(auditeeId);
-                        sel.innerHTML = '<option value="">PILIH AREA</option>' + 
-                            analystAreas.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
-                    });
-                }
             });
 
             document.getElementById('submit-5r').addEventListener('click', async function() {
@@ -1024,26 +1580,32 @@
                 try {
                     const date = document.getElementById('input-5r-date').value;
                     const auditor = document.getElementById('input-5r-auditor').value.toUpperCase().trim();
-                    const auditeeId = document.getElementById('input-5r-auditee').value;
-                    if (!date || !auditor || !auditeeId || temuan5rItems.length === 0) {
+                    const areaId = document.getElementById('input-5r-area').value;
+                    
+                    if (!date || !auditor || !areaId || temuan5rItems.length === 0) {
                         showToast('SEMUA FIELD DAN MIN 1 TEMUAN!', 'error');
                         btn.disabled = false; btn.innerHTML = '💾 SIMPAN SEMUA'; return;
                     }
+                    
                     for (let i = 0; i < temuan5rItems.length; i++) {
                         const item = temuan5rItems[i];
-                        if (!item.areaId || !item.subarea || !item.desc) {
-                            showToast(`TEMUAN #${i+1}: LENGKAPI DATA!`, 'error');
+                        if (!item.desc) {
+                            showToast(`TEMUAN #${i+1}: DESKRIPSI WAJIB DIISI!`, 'error');
                             btn.disabled = false; btn.innerHTML = '💾 SIMPAN SEMUA'; return;
                         }
                     }
-                    const auditeeName = getAnalystName(auditeeId);
+                    
+                    const area = store.areas.find(a => a.id === areaId);
+                    const analyst = getAnalystByArea(areaId);
+                    const auditeeName = analyst ? analyst.name : 'UNKNOWN';
+                    const areaName = area ? area.name : 'UNKNOWN';
+                    
                     for (const item of temuan5rItems) {
-                        const areaName = getAreaName(item.areaId);
                         store.findings5r.push({
                             id: DB.id(), date, auditor_name: auditor,
-                            auditee_id: auditeeId, auditee_name: auditeeName,
-                            area_id: item.areaId, area_name: areaName,
-                            subarea: item.subarea, temuan: item.desc,
+                            auditee_name: auditeeName,
+                            area_id: areaId, area_name: areaName,
+                            temuan: item.desc,
                             photo: item.photoData || null,
                             status: 'open', closed_by: null, action_taken: null,
                             photo_after: null, closed_at: null,
@@ -1058,7 +1620,8 @@
                     const now = new Date();
                     document.getElementById('input-5r-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
                     document.getElementById('input-5r-auditor').value = '';
-                    document.getElementById('input-5r-auditee').value = '';
+                    document.getElementById('input-5r-area').value = '';
+                    document.getElementById('auditee-display').classList.add('hidden');
                     if (currentProject === '5r') loadDashboard5r();
                 } catch(e) { showToast('ERROR: '+e.message, 'error'); }
                 btn.disabled = false;
@@ -1071,7 +1634,8 @@
                 const now = new Date();
                 document.getElementById('input-5r-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
                 document.getElementById('input-5r-auditor').value = '';
-                document.getElementById('input-5r-auditee').value = '';
+                document.getElementById('input-5r-area').value = '';
+                document.getElementById('auditee-display').classList.add('hidden');
                 showToast('FORM DIRESET', 'info');
             });
 
@@ -1087,32 +1651,11 @@
                 return;
             }
 
-            const auditeeId = document.getElementById('input-5r-auditee')?.value || '';
-            const analystAreas = auditeeId ? getAreasByAnalyst(auditeeId) : [];
-
             container.innerHTML = temuan5rItems.map((item, index) => {
-                const subareas = item.areaId ? getSubAreas(item.areaId) : [];
-                const subOptions = subareas.map(s => `<option value="${s}" ${item.subarea === s ? 'selected' : ''}>${s}</option>`).join('');
                 return `<div class="temuan-item" data-index="${index}">
                     <div class="flex justify-between items-center mb-3">
                         <span class="text-xs text-purple-400 font-bold">TEMUAN #${index+1}</span>
                         <span class="remove-temuan" onclick="removeTemuan5r(${index})">🗑️ HAPUS</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">AREA *</label>
-                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-area-select" data-index="${index}">
-                                <option value="">PILIH AREA</option>
-                                ${analystAreas.map(a => `<option value="${a.id}" ${item.areaId === a.id ? 'selected' : ''}>${a.name}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs text-gray-400 mb-1">SUB AREA *</label>
-                            <select class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 temuan-subarea-select" data-index="${index}">
-                                <option value="">PILIH SUB AREA</option>
-                                ${subOptions}
-                            </select>
-                        </div>
                     </div>
                     <div class="mt-3">
                         <label class="block text-xs text-gray-400 mb-1">TEMUAN *</label>
@@ -1126,20 +1669,6 @@
                 </div>`;
             }).join('');
 
-            document.querySelectorAll('.temuan-area-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    const index = parseInt(this.dataset.index);
-                    temuan5rItems[index].areaId = this.value;
-                    temuan5rItems[index].subarea = '';
-                    renderTemuan5rItems();
-                });
-            });
-            document.querySelectorAll('.temuan-subarea-select').forEach(sel => {
-                sel.addEventListener('change', function() {
-                    const index = parseInt(this.dataset.index);
-                    temuan5rItems[index].subarea = this.value;
-                });
-            });
             document.querySelectorAll('.temuan-desc').forEach(txt => {
                 txt.addEventListener('input', function() {
                     const index = parseInt(this.dataset.index);
@@ -1196,9 +1725,8 @@
             const excelData = data.map((f, i) => ({
                 NO: i+1, TANGGAL: f.date||'-', AUDITOR: f.auditor_name||'-',
                 AUDITEE: f.auditee_name||'-', AREA: f.area_name||'-',
-                'SUB AREA': f.subarea||'-', TEMUAN: f.temuan||'-',
-                STATUS: f.status||'open', 'CLOSED BY': f.closed_by||'-',
-                ACTION: f.action_taken||'-'
+                TEMUAN: f.temuan||'-', STATUS: f.status||'open',
+                'CLOSED BY': f.closed_by||'-', ACTION: f.action_taken||'-'
             }));
             const ws = XLSX.utils.json_to_sheet(excelData);
             const wb = XLSX.utils.book_new();
@@ -1224,7 +1752,7 @@
                                 <svg class="w-8 h-8 ${colorClass}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                             </div>
                             <h2 class="text-lg font-bold text-white">ADMIN LOGIN</h2>
-                            <p class="text-xs text-gray-400 mt-1">Hubungi Administrator!</p>
+                            <p class="text-xs text-gray-400 mt-1">PASSWORD: admin123</p>
                         </div>
                         <input type="password" id="admin-password" placeholder="PASSWORD" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-${color}-500">
                         <button id="admin-login-btn" class="w-full mt-4 ${isBrft ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'} py-3 rounded-lg font-medium transition">🔓 LOGIN</button>
@@ -1364,6 +1892,8 @@
 
         function updateManagementData() {
             const isBrft = currentProject === 'brft';
+            
+            // Analysts
             const analystsList = document.getElementById('analysts-list');
             if (analystsList) {
                 analystsList.innerHTML = store.analysts.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
@@ -1373,11 +1903,8 @@
                             areas.map(area => `<div class="area-item bg-gray-700/50 rounded px-3 py-2 mt-1">
                                 <div class="flex items-center justify-between"><span class="text-emerald-300 font-medium">${area.name}</span>
                                 <div class="flex gap-1">
-                                    <button class="add-subarea-btn text-purple-400 hover:text-purple-300 p-1 text-xs" data-id="${area.id}">➕ SUB</button>
-                                    <button class="edit-area text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${area.id}">✏️</button>
                                     <button class="delete-area text-red-400 hover:text-red-300 p-1 text-xs" data-id="${area.id}">🗑️</button>
                                 </div></div>
-                                <div class="flex flex-wrap gap-1 mt-1">${area.subareas && area.subareas.length > 0 ? area.subareas.map(s => `<span class="subarea-badge">${s}</span>`).join(' ') : '<span class="text-gray-400 text-xs">BELUM ADA SUB</span>'}</div>
                             </div>`).join('');
                         return `<div class="analyst-list-item bg-gray-700 rounded-lg px-4 py-3">
                             <div class="flex items-center justify-between"><span class="font-bold text-emerald-400">${a.name}</span>
@@ -1392,14 +1919,30 @@
             }
 
             if (isBrft) {
+                // Products with parameters
                 const productsList = document.getElementById('products-list');
                 if (productsList) {
                     productsList.innerHTML = store.products.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
-                        store.products.map(p => `<div class="flex items-center justify-between bg-gray-700 rounded-lg px-4 py-3" data-id="${p.id}">
-                            <span class="font-medium text-emerald-400">${p.name}</span>
-                            <div class="flex gap-2"><button class="edit-product text-blue-400 hover:text-blue-300 p-1" data-id="${p.id}">✏️</button><button class="delete-product text-red-400 hover:text-red-300 p-1" data-id="${p.id}">🗑️</button></div>
-                        </div>`).join('');
+                        store.products.map(p => {
+                            const paramsHtml = p.parameters && p.parameters.length > 0 ?
+                                p.parameters.map(param => 
+                                    `<span class="param-tag">${param} <span class="remove-param" onclick="removeParameter('${p.id}','${param}')">✕</span></span>`
+                                ).join('') :
+                                '<span class="text-gray-400 text-xs">BELUM ADA PARAMETER</span>';
+                            return `<div class="product-item" data-id="${p.id}">
+                                <div class="flex items-center justify-between">
+                                    <span class="font-medium text-emerald-400">${p.name}</span>
+                                    <div class="flex gap-2">
+                                        <button class="add-param-btn text-blue-400 hover:text-blue-300 p-1 text-xs" data-id="${p.id}">➕ PARAM</button>
+                                        <button class="edit-product text-blue-400 hover:text-blue-300 p-1" data-id="${p.id}">✏️</button>
+                                        <button class="delete-product text-red-400 hover:text-red-300 p-1" data-id="${p.id}">🗑️</button>
+                                    </div>
+                                </div>
+                                <div class="params-container">${paramsHtml}</div>
+                            </div>`;
+                        }).join('');
                 }
+
                 const categoriesList = document.getElementById('categories-list');
                 if (categoriesList) {
                     categoriesList.innerHTML = store.categories.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
@@ -1408,6 +1951,7 @@
                             <div class="flex gap-2"><button class="edit-category text-blue-400 hover:text-blue-300 p-1" data-id="${c.id}">✏️</button><button class="delete-category text-red-400 hover:text-red-300 p-1" data-id="${c.id}">🗑️</button></div>
                         </div>`).join('');
                 }
+
                 const targetsList = document.getElementById('targets-list');
                 if (targetsList) {
                     targetsList.innerHTML = store.targets.length === 0 ? '<p class="text-gray-500 text-center py-4">TIDAK ADA</p>' :
@@ -1423,16 +1967,29 @@
             setupManagementEvents();
         }
 
+        // Fungsi remove parameter
+        window.removeParameter = function(productId, paramName) {
+            const product = store.products.find(p => p.id === productId);
+            if (!product) return;
+            product.parameters = product.parameters.filter(p => p !== paramName);
+            saveStore();
+            addAuditLog('UPDATE', `REMOVED PARAMETER: ${paramName} from ${product.name}`);
+            showToast('PARAMETER DIHAPUS', 'success');
+            updateManagementData();
+        };
+
         function setupManagementEvents() {
             document.querySelectorAll('.add-area-btn').forEach(btn => {
                 btn.removeEventListener('click', handleAddArea);
                 btn.addEventListener('click', handleAddArea);
             });
-            document.querySelectorAll('.add-subarea-btn').forEach(btn => {
-                btn.removeEventListener('click', handleAddSubarea);
-                btn.addEventListener('click', handleAddSubarea);
+            
+            document.querySelectorAll('.add-param-btn').forEach(btn => {
+                btn.removeEventListener('click', handleAddParam);
+                btn.addEventListener('click', handleAddParam);
             });
-            document.querySelectorAll('.edit-analyst, .edit-product, .edit-category, .edit-area, .edit-target').forEach(btn => {
+
+            document.querySelectorAll('.edit-analyst, .edit-product, .edit-category, .edit-target').forEach(btn => {
                 btn.removeEventListener('click', handleEdit);
                 btn.addEventListener('click', handleEdit);
             });
@@ -1451,7 +2008,7 @@
                 const name = document.getElementById('edit-value').value.trim().toUpperCase();
                 if (!name) { showToast('ISI NAMA', 'error'); return; }
                 if (store.areas.some(a => a.name === name && a.analyst_id === analystId)) { showToast('SUDAH ADA', 'error'); return; }
-                store.areas.push({ id: DB.id(), name, analyst_id: analystId, subareas: [] });
+                store.areas.push({ id: DB.id(), name, analyst_id: analystId });
                 saveStore();
                 addAuditLog('CREATE', `NEW AREA: ${name}`);
                 showToast('AREA BERHASIL', 'success');
@@ -1461,22 +2018,22 @@
             document.getElementById('confirm-edit').onclick = editCallback;
         }
 
-        function handleAddSubarea(e) {
-            const areaId = e.currentTarget.dataset.id;
-            document.getElementById('edit-value').placeholder = 'NAMA SUB AREA';
+        function handleAddParam(e) {
+            const productId = e.currentTarget.dataset.id;
+            document.getElementById('edit-value').placeholder = 'NAMA PARAMETER';
             document.getElementById('edit-value').value = '';
             document.getElementById('edit-modal').classList.remove('hidden');
             editCallback = () => {
                 const name = document.getElementById('edit-value').value.trim().toUpperCase();
-                if (!name) { showToast('ISI NAMA', 'error'); return; }
-                const area = store.areas.find(a => a.id === areaId);
-                if (!area) { showToast('AREA TIDAK DITEMUKAN', 'error'); return; }
-                if (!area.subareas) area.subareas = [];
-                if (area.subareas.includes(name)) { showToast('SUDAH ADA', 'error'); return; }
-                area.subareas.push(name);
+                if (!name) { showToast('ISI NAMA PARAMETER', 'error'); return; }
+                const product = store.products.find(p => p.id === productId);
+                if (!product) { showToast('PRODUK TIDAK DITEMUKAN', 'error'); return; }
+                if (!product.parameters) product.parameters = [];
+                if (product.parameters.includes(name)) { showToast('PARAMETER SUDAH ADA', 'error'); return; }
+                product.parameters.push(name);
                 saveStore();
-                addAuditLog('UPDATE', `ADD SUBAREA: ${name}`);
-                showToast('SUB AREA BERHASIL', 'success');
+                addAuditLog('CREATE', `NEW PARAMETER: ${name} for ${product.name}`);
+                showToast('PARAMETER BERHASIL', 'success');
                 document.getElementById('edit-modal').classList.add('hidden');
                 updateManagementData();
             };
@@ -1488,7 +2045,6 @@
             const type = btn.className.includes('edit-analyst') ? 'analyst' :
                          btn.className.includes('edit-product') ? 'product' :
                          btn.className.includes('edit-category') ? 'category' :
-                         btn.className.includes('edit-area') ? 'area' :
                          btn.className.includes('edit-target') ? 'target' : null;
             const id = btn.dataset.id;
             if (type === 'target') {
@@ -1514,7 +2070,6 @@
             if (type === 'analyst') { item = store.analysts.find(a => a.id === id); label = 'INISIAL'; }
             else if (type === 'product') { item = store.products.find(p => p.id === id); label = 'KODE PRODUK'; }
             else if (type === 'category') { item = store.categories.find(c => c.id === id); label = 'KATEGORI'; }
-            else if (type === 'area') { item = store.areas.find(a => a.id === id); label = 'AREA'; }
             if (!item) return;
             document.getElementById('edit-value').placeholder = label;
             document.getElementById('edit-value').value = item.name || '';
